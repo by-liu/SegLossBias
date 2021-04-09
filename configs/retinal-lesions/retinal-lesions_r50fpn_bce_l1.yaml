@@ -1,0 +1,49 @@
+MODEL:
+  ARCH: "Fpn"
+  ENCODER: "resnet50"
+  NUM_CLASSES: 1
+  MODE: "binary"
+  ACT_FUNC: "sigmoid"
+DATA:
+  NAME: "retinal-lesions"
+  DATA_ROOT: "./data/retinal-lesions-v20191227"
+  RESIZE: [896, 896] # [512,512]
+  LABEL_VALUES: [127, 255]
+  BINARY: True
+  NUM_WORKERS: 8
+LOSS:
+  NAME: "CE+L1"
+  ALPHA: 5.0
+  ALPHA_FACTOR: 5
+  ALPHA_STEP_SIZE: 0
+  TEMP: 20.0
+SOLVER:
+  OPTIMIZING_METHOD: "adam"
+  BASE_LR: 0.0001
+  MAX_EPOCH: 50
+  LR_POLICY: "reduce_on_plateau"
+  REDUCE_MODE: "min"
+  FACTOR: 0.5
+  PATIENCE: 6
+TRAIN:
+  DATA_PATH: "train_mul.txt"
+  BATCH_SIZE: 6
+  EVAL_PERIOD: 1
+  CHECKPOINT_PERIOD: 5
+  CALCULATE_METRIC: True
+  # AUTO_RESUME: True
+VAL:
+  DATA_PATH: "val_mul.txt"
+  BATCH_SIZE: 6
+TEST:
+  DATA_PATH: "test_mul.txt"
+  BATCH_SIZE: 6
+  CHECKPOINT_PATH: ""
+TENSORBOARD:
+  ENABLE: False
+  PLOT_CLASS_SCORE: False
+OUTPUT_DIR: ./log/retinal-lesions/retinal-lesions_r50fpn_bce_l1
+RNG_SEED: 2
+LOG_PERIOD: 30
+DEVICE: "cuda:1"
+PERFORM_TEST: True
