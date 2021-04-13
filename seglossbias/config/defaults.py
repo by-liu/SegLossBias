@@ -21,6 +21,9 @@ _C.MODEL.ARCH = "unet"
 # Model architecture
 _C.MODEL.ENCODER = "resnet50"
 
+# Pretrained weights for encoder net
+_C.MODEL.ENCODER_WEIGHTS = ""
+
 # activation function
 _C.MODEL.ACT_FUNC = "softmax"
 
@@ -125,18 +128,16 @@ _C.SOLVER.OPTIMIZING_METHOD = "adam"
 # Base learning rate
 _C.SOLVER.BASE_LR = 0.1
 
+# minimum learning rate (trigged for some schedulers)
+_C.SOLVER.MIN_LR = 0
+
 # Learning rate policy
 _C.SOLVER.LR_POLICY = "reduce_on_plateau"
 
 # Available for ReduceLROnPlateau
 _C.SOLVER.FACTOR = 0.5
-
 _C.SOLVER.PATIENCE = 3
-
 _C.SOLVER.REDUCE_MODE = "min"
-
-# Available for cosine policy
-_C.SOLVER.COSINE_END_LR = 0.0
 
 # Momentum.
 _C.SOLVER.MOMENTUM = 0.9

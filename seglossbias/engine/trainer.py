@@ -4,12 +4,14 @@ import pprint
 import logging
 import torch
 from yacs.config import CfgNode as CN
+import neptune
 
-from ..modeling import build_model, get_loss_func
-from ..solver import build_optimizer, build_scheduler, get_lr
-from ..evaluation import build_evaluator, AverageMeter, LossMeter
-from ..data import build_data_pipeline
-from ..utils import (
+from seglossbias.config import convert_cfg_to_dict
+from seglossbias.modeling import build_model, get_loss_func, CompoundLoss
+from seglossbias.solver import build_optimizer, build_scheduler, get_lr
+from seglossbias.evaluation import build_evaluator, AverageMeter, LossMeter
+from seglossbias.data import build_data_pipeline
+from seglossbias.utils import (
     TensorboardWriter, load_train_checkpoint, save_checkpoint, load_checkpoint
 )
 
@@ -29,35 +31,101 @@ class DefaultTrainer:
         self.cfg = cfg
         logger.info("DefaultTrainer with config : ")
         logger.info(pprint.pformat(cfg))
-        # Build the model
         self.device = torch.device(cfg.DEVICE)
+        self.build_model()
+        self.build_dataloader()
+        self.build_solver()
+        self.build_meter()
+        self.init_tensorboard_or_not()
+        self.init_neptune_or_not()
+
+    def build_model(self):
         self.model = build_model(self.cfg)
         self.model.to(self.device)
         self.loss_func = get_loss_func(self.cfg)
         self.loss_func.to(self.device)
-        # Create the train and val data loaders.
+
+    def build_dataloader(self):
         self.train_loader = build_data_pipeline(self.cfg, "train")
         self.val_loader = build_data_pipeline(self.cfg, "val")
-        # Build the optimizer.
+
+    def build_solver(self):
         self.optimizer = build_optimizer(self.cfg, self.model)
         self.scheduler = build_scheduler(self.cfg, self.optimizer, self.train_loader)
-        # Build evaluator
+
+    def build_meter(self):
         self.evaluator = build_evaluator(self.cfg)
         self.batch_time_meter = AverageMeter()
         self.data_time_meter = AverageMeter()
         self.loss_meter = LossMeter(self.loss_func.num_terms)
-        # Init tensorboard writer if triggered
-        self.writer = TensorboardWriter(self.cfg) if self.cfg.TENSORBOARD.ENABLE else None
-
-    def start_or_resume(self):
-        self.start_epoch, self.best_epoch, self.best_score = load_train_checkpoint(
-            self.cfg, self.model, self.optimizer, self.scheduler)
 
     def reset_meter(self):
         self.evaluator.reset()
         self.batch_time_meter.reset()
         self.data_time_meter.reset()
         self.loss_meter.reset()
+
+    def init_tensorboard_or_not(self):
+        self.writer = TensorboardWriter(self.cfg) if self.cfg.TENSORBOARD.ENABLE else None
+
+    def init_neptune_or_not(self):
+        if self.cfg.NEPTUNE.ENABLE:
+            project_name = self.cfg.NEPTUNE.USER_NAME + "/" + self.cfg.NEPTUNE.PROJECT_NAME
+            neptune.init(project_qualified_name=project_name)
+            work_dir = osp.abspath(osp.join(osp.dirname(__file__), "../.."))
+            neptune.create_experiment(
+                self.cfg.NEPTUNE.EXP_NAME,
+                params=convert_cfg_to_dict(self.cfg),
+                logger=logger,
+                upload_source_files=work_dir + "/**/**.py"
+            )
+
+    def close(self):
+        if self.writer is not None:
+            self.writer.close()
+
+    def start_or_resume(self):
+        self.start_epoch, self.best_epoch, self.best_score = load_train_checkpoint(
+            self.cfg, self.model, self.optimizer, self.scheduler)
+
+    def tensorbaord_iter_info_or_not(
+        self, iter, max_iter, epoch, phase="train",
+        loss_meter=None, score=None, lr=None
+    ):
+        if not self.writer:
+            return
+        if loss_meter is not None:
+            loss_dict = loss_meter.get_vals()
+            for key, val in loss_dict.items():
+                self.writer.add_scalars(
+                    {"{}/Iter/{}".format(phase, key): val},
+                    global_step=epoch * max_iter + iter
+                )
+        if score is not None:
+            self.writer.add_scalars(
+                {"{}/Iter/{}".format(phase, self.evaluator.main_metric()): score},
+                global_step=epoch * max_iter + iter
+            )
+        if lr is not None:
+            self.writer.add_scalars(
+                {"{}/Iter/lr".format(phase): lr},
+                global_step=epoch * max_iter + iter
+            )
+
+    def neptune_iter_info_or_not(
+        self, iter, max_iter, epoch, phase="train",
+        loss_meter=None, score=None, lr=None
+    ):
+        if not self.cfg.NEPTUNE.ENABLE:
+            return
+        if loss_meter is not None:
+            loss_dict = loss_meter.get_vals()
+            for key, val in loss_dict.items():
+                neptune.log_metric("{}/Iter/{}".format(phase, key), val)
+        if score is not None:
+            neptune.log_metric("{}/Iter/{}".format(phase, self.evaluator.main_metric()), score)
+        if lr is not None:
+            neptune.log_metric("{}/Iter/lr".format(phase), lr)
 
     def log_iter_info(
         self, iter, max_iter, epoch, phase="train",
@@ -77,25 +145,65 @@ class DefaultTrainer:
         if loss_meter is not None:
             log_str.append(loss_meter.print_status())
         if score is not None:
-            log_str.append("Score {:.4f}".format(score))
+            log_str.append("{} {:.4f}".format(self.evaluator.main_metric(), score))
         if lr is not None:
             log_str.append("LR {:.3g}".format(lr))
-
         logger.info("\t".join(log_str))
 
+    def tensorbaord_epoch_info_or_not(
+        self, epoch, phase="train", evaluator=None,
+        loss_meter=None
+    ):
+        if self.writer is None:
+            return
+        if loss_meter is not None:
+            loss_dict = loss_meter.get_avgs()
+            for key, val in loss_dict.items():
+                self.writer.add_scalars(
+                    {"{}/Epoch/{}".format(phase, key): val},
+                    global_step=epoch
+                )
+        if isinstance(self.loss_func, CompoundLoss):
+            self.writer.add_scalars(
+                {"{}/Epoch/alpha".format(phase): self.loss_func.alpha}
+            )
+        if evaluator is not None:
+            self.writer.add_scalars(
+                {"{}/Epoch/{}".format(phase, evaluator.main_metric()): evaluator.mean_score()},
+                global_step=epoch
+            )
+
+    def neptune_epoch_info_or_not(
+        self, epoch, phase="train", evaluator=None,
+        loss_meter=None
+    ):
+        if not self.cfg.NEPTUNE.ENABLE:
+            return
+        if loss_meter is not None:
+            loss_dict = loss_meter.get_vals()
+            for key, val in loss_dict.items():
+                neptune.log_metric("{}/Epoch/{}".format(phase, key), val)
+        if isinstance(self.loss_func, CompoundLoss):
+            neptune.log_metric("{}/Epoch/alpha".format(phase), self.loss_func.alpha)
+        if evaluator is not None:
+            neptune.log_metric(
+                "{}/Epoch/{}".format(phase, evaluator.main_metric()), evaluator.mean_score()
+            )
+
     def log_epoch_info(
-        self, epoch, phase="train", num_samples=None, evaluator=None,
-        loss_meter=None,
+        self, epoch, phase="train", evaluator=None,
+        loss_meter=None
     ):
         log_str = []
         log_str.append("{} Epoch[{}]".format(phase, epoch + 1))
-        if num_samples is not None:
-            log_str.append("Samples[{}]".format(num_samples))
+        if evaluator is not None:
+            log_str.append("Samples[{}]".format(evaluator.num_samples()))
         if loss_meter is not None:
             log_str.append(loss_meter.print_avg())
+        if isinstance(self.loss_func, CompoundLoss):
+            log_str.append("alpha {:.4f}".format(self.loss_func.alpha))
         if evaluator is not None:
-            log_str.append("Score {:.4f}".format(evaluator.mean_score()))
-
+            log_str.append("{} {:.4f}".format(evaluator.main_metric(), evaluator.mean_score()))
         logger.info("\t".join(log_str))
 
         if phase != "train" and self.cfg.MODEL.NUM_CLASSES > 1:
@@ -145,12 +253,35 @@ class DefaultTrainer:
                                    batch_time_meter=self.batch_time_meter,
                                    loss_meter=self.loss_meter,
                                    score=score, lr=lr)
+            self.tensorbaord_iter_info_or_not(
+                i, max_iter, epoch,
+                phase="train",
+                loss_meter=self.loss_meter,
+                score=score,
+                lr=lr
+            )
+            self.neptune_iter_info_or_not(
+                i, max_iter, epoch,
+                phase="train",
+                loss_meter=self.loss_meter,
+                score=score,
+                lr=lr
+            )
             end = time.time()
         self.log_epoch_info(epoch,
                             phase="train",
-                            num_samples=self.evaluator.num_samples(),
                             evaluator=self.evaluator,
                             loss_meter=self.loss_meter)
+        self.tensorbaord_epoch_info_or_not(
+            epoch, phase="train",
+            evaluator=self.evaluator,
+            loss_meter=self.loss_meter
+        )
+        self.neptune_epoch_info_or_not(
+            epoch, phase="train",
+            evaluator=self.evaluator,
+            loss_meter=self.loss_meter
+        )
         logger.info("====== Complete training epoch {} ======".format(epoch + 1))
 
     @torch.no_grad()
@@ -184,12 +315,25 @@ class DefaultTrainer:
                                    batch_time_meter=self.batch_time_meter,
                                    loss_meter=self.loss_meter,
                                    score=score)
+                self.tensorbaord_iter_info_or_not(
+                    i, max_iter, epoch, phase=phase, loss_meter=self.loss_meter, score=score
+                )
+                self.neptune_iter_info_or_not(
+                    i, max_iter, epoch, phase=phase, loss_meter=self.loss_meter, score=score
+                )
             end = time.time()
         self.log_epoch_info(epoch,
                             phase=phase,
-                            num_samples=self.evaluator.num_samples(),
                             evaluator=self.evaluator,
                             loss_meter=self.loss_meter)
+        self.tensorbaord_epoch_info_or_not(
+            epoch, phase=phase, evaluator=self.evaluator,
+            loss_meter=self.loss_meter
+        )
+        self.neptune_epoch_info_or_not(
+            epoch, phase=phase, evaluator=self.evaluator,
+            loss_meter=self.loss_meter
+        )
 
         return self.loss_meter.avg(0), self.evaluator.mean_score()
 
@@ -221,6 +365,14 @@ class DefaultTrainer:
                  "model epoch {}, score {:.4f}").format(epoch, test_score)
             )
 
+    def neptune_best_model_or_not(self):
+        if self.cfg.NEPTUNE.ENABLE:
+            epoch = self.best_epoch if self.cfg.TEST.BEST_CHECKPOINT else self.cfg.SOLVER.MAX_EPOCH
+            model_path = osp.join(
+                self.cfg.OUTPUT_DIR, "model", "checkpoint_epoch_{}.pth".format(epoch)
+            )
+            neptune.log_artifact(model_path, "model/checkpoint_epoch_{}.pth".format(epoch))
+
     def save_checkpoint_or_not(self, epoch, val_score):
         if (epoch + 1) >= self.cfg.TRAIN.CHECKPOINT_AFTER_PERIOD and\
                 (epoch + 1) % self.cfg.TRAIN.CHECKPOINT_PERIOD == 0:
@@ -246,6 +398,8 @@ class DefaultTrainer:
             self.save_checkpoint_or_not(epoch, val_score)
             if self.scheduler.name not in {"reduce_on_plateau", "poly"}:
                 self.scheduler.step()
+            if isinstance(self.loss_func, CompoundLoss):
+                self.loss_func.adjust_alpha(epoch)
 
         logger.info("Complete training !")
         logger.info(
@@ -254,3 +408,5 @@ class DefaultTrainer:
         )
         # Peform test phase if requried
         self.test_epoch_or_not()
+        self.neptune_best_model_or_not()
+        self.close()

@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 import numpy as np
 import os
 import random
@@ -54,7 +55,7 @@ def setup_logging(output_dir : str = "", level=logging.INFO, stream : bool = Tru
     if output_dir:
         mkdir(output_dir)
         date_time = datetime.now().strftime("%Y-%m-%d_%H:%M")
-        handler = logging.handlers.RotatingFileHandler(
+        handler = RotatingFileHandler(
             os.path.join(output_dir, "log.{}".format(date_time)),
             encoding="utf-8",
             maxBytes=100 * 1024 * 1024,  # 100M

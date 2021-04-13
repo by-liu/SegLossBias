@@ -1,5 +1,5 @@
 MODEL:
-  ARCH: "Fpn"
+  ARCH: "Unet"
   ENCODER: "resnet50"
   NUM_CLASSES: 1
   MODE: "binary"
@@ -15,12 +15,13 @@ LOSS:
   NAME: "CE"
 SOLVER:
   OPTIMIZING_METHOD: "adam"
-  BASE_LR: 0.0001
+  BASE_LR: 0.001
   MAX_EPOCH: 50
-  LR_POLICY: "reduce_on_plateau"
-  REDUCE_MODE: "min"
-  FACTOR: 0.5
-  PATIENCE: 6
+  # LR_POLICY: "reduce_on_plateau"
+  # REDUCE_MODE: "min"
+  # FACTOR: 0.5
+  # PATIENCE: 6
+  LR_POLICY: "cosine"
 TRAIN:
   DATA_PATH: "train_mul.txt"
   BATCH_SIZE: 6
@@ -37,8 +38,9 @@ TEST:
   CHECKPOINT_PATH: ""
 TENSORBOARD:
   ENABLE: False
-  PLOT_CLASS_SCORE: False
-OUTPUT_DIR: ./log/retinal-lesions/retinal-lesions_r50fpn_bce
+NEPTUNE:
+  ENABLE: True
+OUTPUT_DIR: ./log/retinal-lesions/unet_bce_896x896
 RNG_SEED: 2
 LOG_PERIOD: 30
 DEVICE: "cuda:1"

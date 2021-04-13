@@ -40,8 +40,8 @@ def build_scheduler(
     if cfg.SOLVER.LR_POLICY == "cosine":
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer,
-            T_max=len(data_loader) * cfg.SOLVER.MAX_EPOCH,
-            eta_min=cfg.SOLVER.COSINE_END_LR
+            T_max=cfg.SOLVER.MAX_EPOCH,
+            eta_min=cfg.SOLVER.MIN_LR
         )
     elif cfg.SOLVER.LR_POLICY == "step":
         scheduler = torch.optim.lr_scheduler.StepLR(

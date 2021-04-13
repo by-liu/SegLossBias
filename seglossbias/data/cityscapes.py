@@ -8,23 +8,10 @@ Brief: dataset wrapper for cityscapes datase
 import os
 import os.path as osp
 import logging
-from PIL import Image
 import cv2
-import numpy as np
-import torch
-from typing import List, Tuple, Optional
 from torch.utils.data.dataset import Dataset
-import torch.nn.functional as F
-
-from utils.file_io import load_list, load_leison_classes
-from utils.visualizer import Visualizer
-import dataset.paired_transforms_tv04 as p_tr
-from utils.colormap import colormap
-
 
 logger = logging.getLogger(__name__)
-
-_EPS = 1e-10
 
 
 class CityscapesDataset(Dataset):
@@ -43,7 +30,7 @@ class CityscapesDataset(Dataset):
 
     def __init__(self, data_root : str,
                  split : str = "train",
-                 transforms : Optional[p_tr.Compose] = None,
+                 transforms=None,
                  return_id : bool = False) -> None:
         assert split in [
             "train", "val", "test"
@@ -90,8 +77,6 @@ class CityscapesDataset(Dataset):
 
     def __getitem__(self, index : int):
         img_file, anno_file, sample_id = self.samples[index]
-        # img = Image.open(img_file).convert("RGB")
-        # mask = Image.open(anno_file)
         img = cv2.imread(img_file)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         mask = cv2.imread(anno_file, cv2.IMREAD_GRAYSCALE)
@@ -108,77 +93,3 @@ class CityscapesDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.samples)
-
-
-if __name__ == "__main__":
-    from utils.visualizer import image_mask_show
-    import albumentations as A
-    from albumentations.pytorch import ToTensorV2
-    data_root = "./data/cityscapes"
-
-    data_transform = A.Compose([
-        A.OneOrOther(
-            A.Resize(768, 768, interpolation=cv2.INTER_CUBIC),
-            A.Sequential([
-                A.RandomScale([0.5, 2.0], interpolation=cv2.INTER_CUBIC, p=1.),
-                A.RandomCrop(768, 768),
-            ], p=1),
-            p=0.3
-        ),
-        A.HorizontalFlip(),
-        A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
-        A.HueSaturationValue(),
-        A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.5),
-        A.Normalize(),
-        ToTensorV2()
-    ])
-
-    dataset = CityscapesDataset(
-        data_root, split="train", transforms=None, return_id=True)
-
-    class_area = np.zeros(dataset.num_classes + 1)
-    total_area = 0
-    class_freq = [None] * (dataset.num_classes + 1)
-
-    for i in range(len(dataset)):
-        img, mask, sample_id = dataset[i]
-        area = mask.shape[0] * mask.shape[1]
-        total_area += area
-        labels, counts = np.unique(mask, return_counts=True)
-        for k in range(labels.shape[0]):
-            l = labels[k]
-            # if l == 255:
-            #     class_area[-1] += counts[k]
-            #     class_freq[-1].append(counts[k] / area)
-            if l != 255:
-                class_area[l] += counts[k]
-                if class_freq[l] is not None:
-                    class_freq[l].append(counts[k] / area)
-                else:
-                    class_freq[l] = [counts[k] / area]
-
-        # result = data_transform(image=img, mask=mask) 
-        # new_img = result["image"]
-        # new_mask = result["mask"]
-        # print(new_img.shape, new_mask.shape)
-        # image_mask_show(img, ask, palette=CityscapesDataset.PALETTE)
-    # print("total area : ")
-    # print(total_area, np.sum(cass_area))
-    # print("class ratio : "
-    # class_ratio = class_area / total_area
-    # print(class_ratio.sum())
-    # for i in range(dataset.num_classes):
-    #     print(dataset.classes[i], class_ratio[i])
-    #     freq = np.array(class_freq[i])
-    #     print("{}\t{:.4f}\t{:.4f}\t{:.4f}\t{:.4f}".format(
-    #         dataset.classes[i], np.max(freq), np.min(freq),
-    #         np.mean(freq), np.median(freq))
-    #     )
-
-    # print(len(dataset), len(dataset) * 1024 * 2048)
-
-    # import pickle
-    # with open("cityscapes_classes_ratrios.p", "wb") as fp:
-    #     pickle.dump(class_freq, fp)
-
-    print("done")

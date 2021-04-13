@@ -33,3 +33,7 @@ class DatasetEvaluator:
         return the evaluated samples
         """
         pass
+
+    def main_metric(self):
+        "return the name of the main metric"
+        pass

@@ -9,8 +9,6 @@ from yacs.config import CfgNode as CN
 from typing import Optional, Union, List
 import matplotlib.pyplot as plt
 
-from utils.file_io import load_leison_classes
-
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +22,7 @@ class TensorboardWriter:
         date_time = datetime.now().strftime("%Y-%m-%d_%H:%M")
         self.log_dir = osp.join(cfg.OUTPUT_DIR, "runs.{}".format(date_time))
         self.writer = SummaryWriter(log_dir=self.log_dir)
-        if cfg.TENSORBOARD.CLASSES_NAMES_PATH:
-            self.classes, _ = load_leison_classes(cfg.TENSORBOARD.CLASSES_NAMES_PATH)
-        else:
-            self.classes = None
+        self.classes = None
         self.plot_class_score = cfg.TENSORBOARD.PLOT_CLASS_SCORE
 
         logger.info("To see logged results in Tensorboard, please launch using the command:")

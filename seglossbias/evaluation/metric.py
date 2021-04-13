@@ -60,11 +60,23 @@ class LossMeter:
                 x = x.item()
             meter.update(x, n)
 
+    def get_vals(self):
+        ret = {}
+        for name, meter in zip(self.names, self.meters):
+            ret[name] = meter.val
+        return ret
+
     def print_status(self):
         ret = []
         for name, meter in zip(self.names, self.meters):
             ret.append("{} {:.4f} ({:.4f})".format(name, meter.val, meter.avg))
         return "\t".join(ret)
+
+    def get_avgs(self):
+        ret = {}
+        for name, meter in zip(self.names, self.meters):
+            ret[name] = meter.avg
+        return ret
 
     def print_avg(self):
         ret = []

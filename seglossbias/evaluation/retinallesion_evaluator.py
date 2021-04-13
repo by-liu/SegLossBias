@@ -36,6 +36,9 @@ class RetinalLesionEvaluator(DatasetEvaluator):
 
         return dices.mean()
 
+    def main_metric(self):
+        return "DSC"
+
     def mean_score(self):
         return np.mean(self.all_dices)
 

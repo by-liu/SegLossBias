@@ -6,7 +6,7 @@ from typing import Optional
 import segmentation_models_pytorch as smp
 
 from seglossbias.config.registry import Registry
-from utils.checkpoint import load_checkpoint
+from seglossbias.utils.checkpoint import load_checkpoint
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ NETWORK_REGISTRY = Registry("model")
 def Fpn(cfg) -> smp.FPN:
     model = smp.FPN(
         encoder_name=cfg.MODEL.ENCODER,
+        encoder_weights=cfg.MODEL.ENCODER_WEIGHTS if cfg.MODEL.ENCODER_WEIGHTS else None,
         in_channels=cfg.MODEL.INPUT_CHANNELS,
         classes=cfg.MODEL.NUM_CLASSES
     )
@@ -34,6 +35,7 @@ def Fpn(cfg) -> smp.FPN:
 def Unet(cfg) -> smp.Unet:
     model = smp.Unet(
         encoder_name=cfg.MODEL.ENCODER,
+        encoder_weights=cfg.MODEL.ENCODER_WEIGHTS if cfg.MODEL.ENCODER_WEIGHTS else None,
         in_channels=cfg.MODEL.INPUT_CHANNELS,
         classes=cfg.MODEL.NUM_CLASSES
     )
@@ -45,6 +47,7 @@ def Unet(cfg) -> smp.Unet:
 def DeepLabV3Plus(cfg) -> smp.DeepLabV3Plus:
     model = smp.DeepLabV3Plus(
         encoder_name=cfg.MODEL.ENCODER,
+        encoder_weights=cfg.MODEL.ENCODER_WEIGHTS if cfg.MODEL.ENCODER_WEIGHTS else None,
         in_channels=cfg.MODEL.INPUT_CHANNELS,
         classes=cfg.MODEL.NUM_CLASSES
     )

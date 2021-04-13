@@ -7,7 +7,7 @@ import torch
 from typing import List, Tuple, Optional
 from torch.utils.data.dataset import Dataset
 
-from utils import load_list
+from seglossbias.utils import load_list
 # from utils.colormap import colormap
 
 _EPS = 1e-10
