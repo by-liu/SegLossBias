@@ -136,3 +136,4 @@ dmypy.json
 .output/
 
 .DS_Store
+*.swp

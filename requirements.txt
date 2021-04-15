@@ -1,0 +1,15 @@
+albumentations
+flake8
+future
+numpy
+scikit-image
+scikit-learn
+scipy
+segmentation-models-pytorch
+tensorboard
+termcolor
+terminaltables
+tqdm
+yacs
+psutil
+tabulate

@@ -8,5 +8,7 @@ setup(
     "The hidden label-marginal biases of segmentation losses",
     packages=find_packages(),
     python_requries=">=3.8",
-    install_requires=[],
+    install_requires=[
+        # Please install pytorch-related libraries and opencv by yourself based on your environment
+    ],
 )

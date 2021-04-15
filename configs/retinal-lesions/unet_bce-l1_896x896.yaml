@@ -13,7 +13,11 @@ DATA:
   BINARY: True
   NUM_WORKERS: 8
 LOSS:
-  NAME: "CE"
+  NAME: "CE+L1"
+  ALPHA: 1.0
+  ALPHA_FACTOR: 5
+  ALPHA_STEP_SIZE: 0
+  TEMP: 10.0
 SOLVER:
   OPTIMIZING_METHOD: "adam"
   BASE_LR: 0.0001
@@ -41,7 +45,7 @@ TENSORBOARD:
   ENABLE: False
 NEPTUNE:
   ENABLE: False
-OUTPUT_DIR: ./log/retinal-lesions/unet_bce_896x896
+OUTPUT_DIR: ./log/retinal-lesions/unet_bce-l1_896x896
 RNG_SEED: 2
 LOG_PERIOD: 30
 DEVICE: "cuda:0"
