@@ -129,7 +129,7 @@ _C.SOLVER.OPTIMIZING_METHOD = "adam"
 _C.SOLVER.BASE_LR = 0.1
 
 # minimum learning rate (trigged for some schedulers)
-_C.SOLVER.MIN_LR = 0
+_C.SOLVER.MIN_LR = 0.0
 
 # Learning rate policy
 _C.SOLVER.LR_POLICY = "reduce_on_plateau"
@@ -211,6 +211,9 @@ _C.TEST = CN()
 
 # Val data list path (A relative path to _C.DATA.DATA_ROOT or an absoulte path)
 _C.TEST.DATA_PATH = ""
+
+# The split name
+_C.TEST.SPLIT = "test"
 
 # Total mini-batch size.
 _C.TEST.BATCH_SIZE = 4

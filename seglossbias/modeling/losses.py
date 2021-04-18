@@ -2,8 +2,9 @@ import logging
 import torch
 import torch.nn as nn
 
-from ..config.registry import Registry
+from seglossbias.config.registry import Registry
 from .compound_losses import CompoundLoss, CrossEntropyWithL1, CrossEntropyWithKL
+from .dice import DiceLoss
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,26 @@ LOSS_REGISTRY.register(
         ignore_index=cfg.LOSS.IGNORE_INDEX,
         background_index=cfg.LOSS.BACKGROUND_INDEX,
         weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
+    )
+)
+
+
+LOSS_REGISTRY.register(
+    "DiceLoss",
+    lambda cfg: DiceLoss(
+        mode=cfg.MODEL.MODE,
+        log_loss=False,
+        ignore_index=cfg.LOSS.IGNORE_INDEX
+    )
+)
+
+
+LOSS_REGISTRY.register(
+    "LogDiceLoss",
+    lambda cfg: DiceLoss(
+        mode=cfg.MODEL.MODE,
+        log_loss=True,
+        ignore_index=cfg.LOSS.IGNORE_INDEX
     )
 )
 

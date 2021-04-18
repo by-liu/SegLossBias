@@ -1,0 +1,41 @@
+MODEL:
+  ARCH: "Fpn"
+  ENCODER: "resnet50"
+  ENCODER_WEIGHTS: "imagenet"
+  NUM_CLASSES: 19
+  MODE: "multiclass"
+  ACT_FUNC: "softmax"
+DATA:
+  NAME: "cityscapes"
+  DATA_ROOT: "./data/cityscapes"
+  RESIZE: [512, 1024] # [768, 768]
+  NUM_WORKERS: 8
+LOSS:
+  NAME: "CE"
+  IGNORE_INDEX: 255
+SOLVER:
+  OPTIMIZING_METHOD: "sgd"
+  BASE_LR: 0.01
+  MIN_LR: 1e-4
+  MOMENTUM: 0.9
+  WEIGHT_DECAY: 1e-4
+  MAX_EPOCH: 100
+  LR_POLICY: "poly"
+TRAIN:
+  BATCH_SIZE: 8
+  EVAL_PERIOD: 1
+  CHECKPOINT_PERIOD: 1
+  CALCULATE_METRIC: True
+VAL:
+  BATCH_SIZE: 4
+TEST:
+  BATCH_SIZE: 4
+  BEST_CHECKPOINT: False
+  SAVE_PREDICTS: False
+TENSORBOARD:
+  ENABLE: False
+OUTPUT_DIR: ./log/cityscapes/r50fpn_512x1024_ce
+RNG_SEED: 1
+LOG_PERIOD: 50
+DEVICE: "cuda:0"
+PERFORM_TEST: False

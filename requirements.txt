@@ -13,3 +13,4 @@ tqdm
 yacs
 psutil
 tabulate
+neptune-client

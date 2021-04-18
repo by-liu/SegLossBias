@@ -19,6 +19,7 @@ def cityscapes(cfg : CN, data_transform : A.Compose, split : str = "train") -> D
         data_root=cfg.DATA.DATA_ROOT,
         split=split,
         transforms=data_transform,
+        return_id=True if split in ("val", "test") else False
     )
     return dataset
 
@@ -38,6 +39,7 @@ def retinal_lesions(cfg : CN, data_transform : A.Compose, split : str = "train")
         cfg.DATA.LABEL_VALUES,
         binary=cfg.DATA.BINARY,
         region_number=cfg.DATA.REGION_NUMBER,
+        return_id=True if split == "test" else False
     )
 
     return dataset

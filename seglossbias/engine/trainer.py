@@ -22,10 +22,11 @@ class DefaultTrainer:
     """
     A trainer with default training logic. It does the following:
 
-    1. Create a model, loss, optimizer, LR scheduler, dataloader defined by the given config.
-    2. Create loss meter and performance evaluator
-    3. Start training and evaluation in epoch-by-epoch manner
-    4. Status logging, Tensorboard writing [optional] or Neptune tracking [optional]
+    1. Create a model, loss, optimizer, LR scheduler
+    2. build dataloader to generate mini-batch input data
+    3. Create loss meter and performance evaluator
+    4. Start training and evaluation in epoch-by-epoch manner
+    5. Status logging, Tensorboard writing [optional] or Neptune tracking [optional]
     """
     def __init__(self, cfg: CN):
         self.cfg = cfg

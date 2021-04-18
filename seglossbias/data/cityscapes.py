@@ -28,6 +28,13 @@ class CityscapesDataset(Dataset):
         33
     ]
 
+    classes = [
+        'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+        'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
+        'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle',
+        'bicycle',
+    ]
+
     def __init__(self, data_root : str,
                  split : str = "train",
                  transforms=None,
@@ -42,13 +49,6 @@ class CityscapesDataset(Dataset):
         self.anno_dir = osp.join(data_root, "gtFine", split)
         self.return_id = return_id
         self.samples = self.load_semantic_files()
-
-        self.classes = [
-            'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
-            'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
-            'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle',
-            'bicycle',
-        ]
         self.num_classes = len(self.classes)
 
     def load_semantic_files(self):

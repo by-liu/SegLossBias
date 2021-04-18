@@ -1,11 +1,10 @@
 import torch
 import logging
-import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
 
-from ..utils.constants import BINARY_MODE, MULTICLASS_MODE, MULTILABEL_MODE, EPS
+from seglossbias.utils.constants import BINARY_MODE, MULTICLASS_MODE, MULTILABEL_MODE, EPS
 
 
 logger = logging.getLogger(__name__)
@@ -33,8 +32,12 @@ def get_region_proportion(x: torch.Tensor, valid_mask: torch.Tensor = None) -> t
         valid_mask : indicate the considered elements
     """
     if valid_mask is not None:
-        x = torch.einsum("bcwh, bcwh->bcwh", x, valid_mask)
-        cardinality = torch.einsum("bcwh->bc", valid_mask)
+        if valid_mask.dim() == 4:
+            x = torch.einsum("bcwh, bcwh->bcwh", x, valid_mask)
+            cardinality = torch.einsum("bcwh->bc", valid_mask)
+        else:
+            x = torch.einsum("bcwh,bwh->bcwh", x, valid_mask)
+            cardinality = torch.einsum("bwh->b", valid_mask).unsqueeze(dim=1).repeat(1, x.shape[1])
     else:
         cardinality = x.shape[2] * x.shape[3]
 
@@ -83,7 +86,11 @@ class CompoundLoss(nn.Module):
         if self.step_size == 0:
             return
         if (epoch + 1) % self.step_size == 0:
+            curr_alpha = self.alpha
             self.alpha = min(self.alpha * self.factor, self.max_alpha)
+            logger.info(
+                "CompoundLoss : Adjust the tradoff param alpha : {:.3g} -> {:.3g}".format(curr_alpha, self.alpha)
+            )
 
     def get_gt_proportion(self, mode: str,
                           labels: torch.Tensor,

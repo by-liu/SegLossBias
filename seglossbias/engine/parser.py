@@ -6,7 +6,6 @@ from ..config import get_cfg
 
 def default_argument_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Segmentation Pipeline')
-    # For neptune
     parser.add_argument("--config-file", default="", metavar="FILE",
                         help="path to config file")
     parser.add_argument("opts", default=None, nargs=argparse.REMAINDER,
