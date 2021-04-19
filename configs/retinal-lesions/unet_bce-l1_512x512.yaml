@@ -40,7 +40,7 @@ TEST:
 TENSORBOARD:
   ENABLE: False
 NEPTUNE:
-  ENABLE: True
+  ENABLE: False
 OUTPUT_DIR: ./log/retinal-lesions/unet_bce-l1_512x512
 RNG_SEED: 2
 LOG_PERIOD: 30
