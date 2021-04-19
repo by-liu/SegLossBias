@@ -2,7 +2,7 @@
 File: defaults.py
 Author: Binguan Liu
 Date: Dec 14, 2020
-Brief: default configurations for lesion segmentation
+Brief: default configurations for segmentation
 """
 
 from yacs.config import CfgNode as CN
