@@ -2,7 +2,7 @@
 
 Code for the paper : The hidden label-marginal biases of segmentation losses. 
 
-[[arxiv]()] (The link will be available soon)
+[[arxiv](https://arxiv.org/abs/2104.08717)] 
 
 <img src="docs/example_cityscapes.png" width="1000"/>
 
@@ -124,5 +124,12 @@ This work is licensed under MIT License. See [LICENSE](LICENSE) for details.
 
 If you find this paper/code useful for your research, please consider citing :
 
-*TODO : will be available soon*
+@misc{liu2021hidden,
+      title={The hidden label-marginal biases of segmentation losses}, 
+      author={Bingyuan Liu and Jose Dolz and Adrian Galdran and Riadh Kobbi and Ismail Ben Ayed},
+      year={2021},
+      eprint={2104.08717},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
 
