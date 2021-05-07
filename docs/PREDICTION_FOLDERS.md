@@ -8,7 +8,7 @@ This is a guide on performing inference with a given image folder.
 
 - Download the examples : [test_images](https://drive.google.com/file/d/19SYRydo1icw5PvpkrxGRjw6jJhZF9l6m/view?usp=sharing)
 
-- Run the scripts (you may need to change the path parameters of testing image and model in the command)
+- Run the scripts (you may need to change the path parameters of image-path, save-path and TEST.CHECKPOINT_PATH in the command)
   
   ```
   python tools/test_net_with_folder.py --image-path ./data/test_images --save-path ./prediction \\
