@@ -123,3 +123,52 @@ class DefaultTester:
 
             end = time.time()
         self.log_epoch_info(self.evaluator)
+
+
+class ImageFolderTester(DefaultTester):
+    """
+    A tester for inference with a given image folder as input,
+    Compared with Default Tester, it doesn't contain the evaluation but save all the output masks.
+    """
+    def __init__(self, cfg: CN, save_path: str):
+        self.cfg = cfg
+        logger.info("ImageFolderTester with config : ")
+        logger.info(pprint.pformat(self.cfg))
+        self.device = torch.device(self.cfg.DEVICE)
+        self.data_loader = build_data_pipeline(self.cfg, self.cfg.TEST.SPLIT)
+        self.build_model()
+        self.save_path = save_path
+        mkdir(self.save_path)
+
+    def save_predicts(self, predicts, sample_ids):
+        if self.cfg.MODEL.NUM_CLASSES == 1:
+            pred_labels = (predicts.squeeze(dim=1) > self.cfg.THRES).int().cpu().numpy()
+        else:
+            pred_labels = torch.argmax(predicts, dim=1).cpu().numpy()
+
+        for i, sample_id in enumerate(sample_ids):
+            out_image = np.uint8(pred_labels[i] * 255)
+            out_file = osp.join(self.save_path, osp.splitext(sample_id)[0] + ".png")
+            cv2.imwrite(out_file, out_image)
+
+    @torch.no_grad()
+    def test(self):
+        timer = AverageMeter()
+
+        self.model.eval()
+        max_iter = len(self.data_loader)
+        end = time.time()
+        for i, samples in enumerate(self.data_loader):
+            inputs, sample_ids = samples[0].to(self.device), samples[1]
+            # forward
+            outputs = self.model(inputs)
+            predicts = self.model.act(outputs)
+            # save predicts to predicted mask image
+            self.save_predicts(predicts, sample_ids)
+            timer.update(time.time() - end)
+            logger.info(
+                "Test Epoch[{}/{}] Time {timer.val:.3f} ({timer.avg:.3f})".format(
+                    i + 1, max_iter, timer=timer)
+            )
+            end = time.time()
+        logger.info("Done with test Samples[{}]".format(len(self.data_loader.dataset)))

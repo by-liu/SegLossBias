@@ -110,8 +110,22 @@ def cityscapes(cfg : CfgNode, is_train : bool = True) -> A.Compose:
     return transformer
 
 
+@DATA_TRANSFORM.register("image-folder")
+def image_folder(cfg : CfgNode, **kwargs) -> p_tr.Compose:
+    normalize = p_tr.Normalize(
+        mean=cfg.DATA.MEAN, std=cfg.DATA.STD
+    )
+    transformer = p_tr.Compose([
+        p_tr.Resize(cfg.DATA.RESIZE),
+        p_tr.ToTensor(),
+        normalize,
+    ])
+
+    return transformer
+
+
 def build_image_transform(cfg : CfgNode, is_train : bool = True) -> A.Compose:
-    transformer = DATA_TRANSFORM.get(cfg.DATA.NAME)(cfg, is_train)
+    transformer = DATA_TRANSFORM.get(cfg.DATA.NAME)(cfg, is_train=is_train)
     logger.info("Successfully build image tranform : {}".format(transformer))
 
     return transformer

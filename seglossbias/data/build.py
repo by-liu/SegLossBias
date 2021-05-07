@@ -4,10 +4,12 @@ from torch.utils.data.dataset import Dataset
 import os.path as osp
 from yacs.config import CfgNode as CN
 import albumentations as A
+from typing import Callable
 
 from ..config.registry import Registry
 from .retinal_lesion_dataset import RetinalLesionsDataset
 from .cityscapes import CityscapesDataset
+from .image_folder import ImageFolder
 from .data_transform import build_image_transform
 
 DATASET_REGISTRY = Registry("dataset")
@@ -45,6 +47,18 @@ def retinal_lesions(cfg : CN, data_transform : A.Compose, split : str = "train")
     return dataset
 
 
+@DATASET_REGISTRY.register("image-folder")
+def image_folder(cfg: CN, data_transform: Callable, **kwargs):
+    data_root = cfg.DATA.DATA_ROOT
+    dataset = ImageFolder(
+        data_root,
+        transforms=data_transform,
+        return_id=True
+    )
+
+    return dataset
+
+
 def build_data_pipeline(cfg : CN, split : str = "train") -> DataLoader:
     assert split in [
         "train", "val", "test",
@@ -52,7 +66,7 @@ def build_data_pipeline(cfg : CN, split : str = "train") -> DataLoader:
 
     data_transform = build_image_transform(cfg, is_train=(split == "train"))
     batch_size = cfg[split.upper()]["BATCH_SIZE"]
-    dataset = DATASET_REGISTRY.get(cfg.DATA.NAME)(cfg, data_transform, split)
+    dataset = DATASET_REGISTRY.get(cfg.DATA.NAME)(cfg, data_transform=data_transform, split=split)
 
     data_loader = DataLoader(
         dataset=dataset,
