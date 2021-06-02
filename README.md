@@ -16,6 +16,8 @@ Code for the paper : The hidden label-marginal biases of segmentation losses.
 
 ## Prerequisites
 
+Note : I only test the code with python 3.8 and 3.9. Environment manager like conda or virtualenv is strongly recommended.
+
 1. Install [pytorch](https://pytorch.org/) and opencv tailored for your environment:
     ```
     torch==1.7.1
