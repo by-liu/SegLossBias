@@ -11,7 +11,11 @@ import cv2
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-import seglossbias.data.paired_transforms_tv04 as p_tr
+import sys
+if sys.version_info < (3, 7):
+    from seglossbias.data import paired_transforms_tv04 as p_tr
+else:
+    import seglossbias.data.paired_transforms_tv04 as p_tr
 from ..config.registry import Registry
 
 DATA_TRANSFORM = Registry("data_transform")
