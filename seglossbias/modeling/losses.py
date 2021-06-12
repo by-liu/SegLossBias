@@ -1,10 +1,11 @@
 import logging
 import torch
 import torch.nn as nn
+import segmentation_models_pytorch as smp
 
 from seglossbias.config.registry import Registry
 from .compound_losses import CompoundLoss, CrossEntropyWithL1, CrossEntropyWithKL
-from .dice import DiceLoss
+from .dice import DiceLoss, GeneralisedDiceLoss
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,19 @@ LOSS_REGISTRY.register(
     lambda cfg: DiceLoss(
         mode=cfg.MODEL.MODE,
         log_loss=True,
+        ignore_index=cfg.LOSS.IGNORE_INDEX
+    )
+)
+
+LOSS_REGISTRY.register(
+    "GDiceLoss",
+    lambda cfg : GeneralisedDiceLoss()
+)
+
+LOSS_REGISTRY.register(
+    "FocalLoss",
+    lambda cfg : smp.losses.FocalLoss(
+        mode=cfg.MODEL.MODE,
         ignore_index=cfg.LOSS.IGNORE_INDEX
     )
 )
