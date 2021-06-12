@@ -4,7 +4,7 @@ import pprint
 import logging
 import torch
 from yacs.config import CfgNode as CN
-import neptune
+import wandb
 
 from seglossbias.config import convert_cfg_to_dict
 from seglossbias.modeling import build_model, get_loss_func, CompoundLoss
@@ -26,7 +26,7 @@ class DefaultTrainer:
     2. build dataloader to generate mini-batch input data
     3. Create loss meter and performance evaluator
     4. Start training and evaluation in epoch-by-epoch manner
-    5. Status logging, Tensorboard writing [optional] or Neptune tracking [optional]
+    5. Status logging, Tensorboard writing [optional] or wandb tracking [optional]
     """
     def __init__(self, cfg: CN):
         self.cfg = cfg
@@ -38,7 +38,7 @@ class DefaultTrainer:
         self.build_solver()
         self.build_meter()
         self.init_tensorboard_or_not()
-        self.init_neptune_or_not()
+        self.init_wandb_or_not()
 
     def build_model(self):
         self.model = build_model(self.cfg)
@@ -69,17 +69,15 @@ class DefaultTrainer:
     def init_tensorboard_or_not(self):
         self.writer = TensorboardWriter(self.cfg) if self.cfg.TENSORBOARD.ENABLE else None
 
-    def init_neptune_or_not(self):
-        if self.cfg.NEPTUNE.ENABLE:
-            project_name = self.cfg.NEPTUNE.USER_NAME + "/" + self.cfg.NEPTUNE.PROJECT_NAME
-            neptune.init(project_qualified_name=project_name)
-            work_dir = osp.abspath(osp.join(osp.dirname(__file__), "../.."))
-            neptune.create_experiment(
-                self.cfg.NEPTUNE.EXP_NAME,
-                params=convert_cfg_to_dict(self.cfg),
-                logger=logger,
-                upload_source_files=work_dir + "/**/**.py"
+    def init_wandb_or_not(self):
+        if self.cfg.WANDB.ENABLE:
+            wandb.init(
+                project=self.cfg.WANDB.PROJECT,
+                entity=self.cfg.WANDB.ENTITY,
+                config=convert_cfg_to_dict(self.cfg),
+                tags=["train"]
             )
+            wandb.watch(self.model, log=None)
 
     def close(self):
         if self.writer is not None:
@@ -113,20 +111,28 @@ class DefaultTrainer:
                 global_step=epoch * max_iter + iter
             )
 
-    def neptune_iter_info_or_not(
+    def wandb_iter_info_or_not(
         self, iter, max_iter, epoch, phase="train",
         loss_meter=None, score=None, lr=None
     ):
-        if not self.cfg.NEPTUNE.ENABLE:
+        if not self.cfg.WANDB.ENABLE:
             return
+
+        step = epoch * max_iter + iter
+        log_dict = {"iter": step}
+
         if loss_meter is not None:
             loss_dict = loss_meter.get_vals()
             for key, val in loss_dict.items():
-                neptune.log_metric("{}/Iter/{}".format(phase, key), val)
+                log_dict["{}/Iter/{}".format(phase, key)] = val
+                # neptune.log_metric("{}/Iter/{}".format(phase, key), val)
         if score is not None:
-            neptune.log_metric("{}/Iter/{}".format(phase, self.evaluator.main_metric()), score)
+            log_dict["{}/Iter/{}".format(phase, self.evaluator.main_metric())] = score
+            # neptune.log_metric("{}/Iter/{}".format(phase, self.evaluator.main_metric()), score)
         if lr is not None:
-            neptune.log_metric("{}/Iter/lr".format(phase), lr)
+            log_dict["{}/Iter/lr".format(phase)] = lr
+            # neptune.log_metric("{}/Iter/lr".format(phase), lr)
+        wandb.log(log_dict)
 
     def log_iter_info(
         self, iter, max_iter, epoch, phase="train",
@@ -174,22 +180,30 @@ class DefaultTrainer:
                 global_step=epoch
             )
 
-    def neptune_epoch_info_or_not(
+    def wandb_epoch_info_or_not(
         self, epoch, phase="train", evaluator=None,
         loss_meter=None
     ):
-        if not self.cfg.NEPTUNE.ENABLE:
+        if not self.cfg.WANDB.ENABLE:
             return
+        if phase != "test":
+            log_dict = {"epoch": epoch}
+        else:
+            log_dict = {"test_epoch": epoch}
         if loss_meter is not None:
             loss_dict = loss_meter.get_vals()
             for key, val in loss_dict.items():
-                neptune.log_metric("{}/Epoch/{}".format(phase, key), val)
+                log_dict["{}/Epoch/{}".format(phase, key)] = val
+                # neptune.log_metric("{}/Epoch/{}".format(phase, key), val)
         if isinstance(self.loss_func, CompoundLoss):
-            neptune.log_metric("{}/Epoch/alpha".format(phase), self.loss_func.alpha)
+            log_dict["{}/Epoch/alpha".format(phase)] = self.loss_func.alpha
+            # neptune.log_metric("{}/Epoch/alpha".format(phase), self.loss_func.alpha)
         if evaluator is not None:
-            neptune.log_metric(
-                "{}/Epoch/{}".format(phase, evaluator.main_metric()), evaluator.mean_score()
-            )
+            log_dict["{}/Epoch/{}".format(phase, evaluator.main_metric())] = evaluator.mean_score()
+            # neptune.log_metric(
+            #     "{}/Epoch/{}".format(phase, evaluator.main_metric()), evaluator.mean_score()
+            # )
+        wandb.log(log_dict)
 
     def log_epoch_info(
         self, epoch, phase="train", evaluator=None,
@@ -261,7 +275,7 @@ class DefaultTrainer:
                 score=score,
                 lr=lr
             )
-            self.neptune_iter_info_or_not(
+            self.wandb_iter_info_or_not(
                 i, max_iter, epoch,
                 phase="train",
                 loss_meter=self.loss_meter,
@@ -278,7 +292,7 @@ class DefaultTrainer:
             evaluator=self.evaluator,
             loss_meter=self.loss_meter
         )
-        self.neptune_epoch_info_or_not(
+        self.wandb_epoch_info_or_not(
             epoch, phase="train",
             evaluator=self.evaluator,
             loss_meter=self.loss_meter
@@ -319,7 +333,7 @@ class DefaultTrainer:
                 self.tensorbaord_iter_info_or_not(
                     i, max_iter, epoch, phase=phase, loss_meter=self.loss_meter, score=score
                 )
-                self.neptune_iter_info_or_not(
+                self.wandb_iter_info_or_not(
                     i, max_iter, epoch, phase=phase, loss_meter=self.loss_meter, score=score
                 )
             end = time.time()
@@ -331,7 +345,7 @@ class DefaultTrainer:
             epoch, phase=phase, evaluator=self.evaluator,
             loss_meter=self.loss_meter
         )
-        self.neptune_epoch_info_or_not(
+        self.wandb_epoch_info_or_not(
             epoch, phase=phase, evaluator=self.evaluator,
             loss_meter=self.loss_meter
         )
@@ -351,9 +365,9 @@ class DefaultTrainer:
     def test_epoch_or_not(self):
         if self.cfg.PERFORM_TEST:
             logger.info("Start testing ... ")
-            epoch = self.best_epoch if self.cfg.TEST.BEST_CHECKPOINT else self.cfg.SOLVER.MAX_EPOCH
+            epoch = self.best_epoch if self.cfg.TEST.BEST_CHECKPOINT else self.cfg.SOLVER.MAX_EPOCH - 1
             model_path = osp.join(
-                self.cfg.OUTPUT_DIR, "model", "checkpoint_epoch_{}.pth".format(epoch)
+                self.cfg.OUTPUT_DIR, "model", "checkpoint_epoch_{}.pth".format(epoch + 1)
             )
             load_checkpoint(model_path, self.model, self.device)
             test_loader = build_data_pipeline(self.cfg, "test")
@@ -366,13 +380,13 @@ class DefaultTrainer:
                  "model epoch {}, score {:.4f}").format(epoch, test_score)
             )
 
-    def neptune_best_model_or_not(self):
-        if self.cfg.NEPTUNE.ENABLE:
+    def wandb_best_model_or_not(self):
+        if self.cfg.WANDB.ENABLE:
             epoch = self.best_epoch if self.cfg.TEST.BEST_CHECKPOINT else self.cfg.SOLVER.MAX_EPOCH
             model_path = osp.join(
                 self.cfg.OUTPUT_DIR, "model", "checkpoint_epoch_{}.pth".format(epoch)
             )
-            neptune.log_artifact(model_path, "model/checkpoint_epoch_{}.pth".format(epoch))
+            wandb.save(model_path)
 
     def save_checkpoint_or_not(self, epoch, val_score):
         if (epoch + 1) >= self.cfg.TRAIN.CHECKPOINT_AFTER_PERIOD and\
@@ -409,5 +423,5 @@ class DefaultTrainer:
         )
         # Peform test phase if requried
         self.test_epoch_or_not()
-        self.neptune_best_model_or_not()
+        self.wandb_best_model_or_not()
         self.close()

@@ -292,6 +292,14 @@ _C.NEPTUNE.USER_NAME = "bingyuan"
 _C.NEPTUNE.PROJECT_NAME = "seg-loss-bias"
 _C.NEPTUNE.EXP_NAME = "train"
 
+# -------------------------------------------------------------
+# Wandb(https://wandb.ai/) : Experiment management platform
+# -------------------------------------------------------------
+_C.WANDB = CN()
+_C.WANDB.ENABLE = False
+_C.WANDB.PROJECT = "iccv2021"
+_C.WANDB.ENTITY = "newton"
+
 
 # -------------------------------------------------------------
 # Misc options
