@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from typing import Optional
 
 from seglossbias.utils.constants import BINARY_MODE, MULTICLASS_MODE, MULTILABEL_MODE, EPS
+from .dice import DiceLoss
 
 
 logger = logging.getLogger(__name__)
@@ -166,3 +167,19 @@ class CrossEntropyWithKL(CompoundLoss):
         loss = loss_ce + self.alpha * regularizer
 
         return loss, loss_ce, regularizer
+
+
+class CrossEntropyWithDice(CompoundLoss):
+    def __init__(self, mode: str,
+                 alpha: float = 1.0,
+                 factor: float = 1.0,
+                 step_size: int = 0,
+                 max_alpha: float = 100,
+                 temp: float = 1.,
+                 ignore_index: int = 255,
+                 background_index: int = -1,
+                 weight: Optional[torch.Tensor] = None) -> None:
+        super().__init__(mode, alpha=alpha, factor=factor, step_size=step_size,
+                         max_alpha=max_alpha, temp=temp, ignore_index=ignore_index,
+                         background_index=background_index, weight=weight)
+        self.dice =DiceLoss(mode=mode, log_loss=True, ignore_index=self.ignore_index)

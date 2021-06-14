@@ -1,5 +1,5 @@
 MODEL:
-  ARCH: "Unet"
+  ARCH: "DeepLabV3Plus"
   ENCODER: "resnet50"
   ENCODER_WEIGHTS: "imagenet"
   NUM_CLASSES: 1
@@ -43,7 +43,7 @@ WANDB:
   ENABLE: True
   PROJECT: iccv2021
   ENTITY: newton
-OUTPUT_DIR: ./log/retinal-lesions/unet_bce_512x512
+OUTPUT_DIR: ./log/retinal-lesions/dlv3p_bce_512x512
 RNG_SEED: 1
 LOG_PERIOD: 30
 DEVICE: "cuda:0"

@@ -222,7 +222,7 @@ class DefaultTrainer:
         logger.info("\t".join(log_str))
 
         if phase != "train" and self.cfg.MODEL.NUM_CLASSES > 1:
-            evaluator.print_class_score()
+            evaluator.class_score()
 
     def train_epoch(self, epoch: int):
         self.reset_meter()

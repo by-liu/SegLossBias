@@ -1,5 +1,5 @@
 MODEL:
-  ARCH: "Unet"
+  ARCH: "DeepLabV3Plus"
   ENCODER: "resnet50"
   ENCODER_WEIGHTS: "imagenet"
   NUM_CLASSES: 1
@@ -13,7 +13,11 @@ DATA:
   BINARY: True
   NUM_WORKERS: 8
 LOSS:
-  NAME: "CE"
+  NAME: "CE+L1"
+  ALPHA: 1.0
+  ALPHA_FACTOR: 5
+  ALPHA_STEP_SIZE: 0
+  TEMP: 20.0
 SOLVER:
   OPTIMIZING_METHOD: "adam"
   BASE_LR: 0.0001
@@ -28,7 +32,7 @@ TRAIN:
   EVAL_PERIOD: 1
   CHECKPOINT_PERIOD: 5
   CALCULATE_METRIC: True
-  AUTO_RESUME: True
+  # AUTO_RESUME: True
 VAL:
   DATA_PATH: "val.txt"
   BATCH_SIZE: 8
@@ -43,7 +47,7 @@ WANDB:
   ENABLE: True
   PROJECT: iccv2021
   ENTITY: newton
-OUTPUT_DIR: ./log/retinal-lesions/unet_bce_512x512
+OUTPUT_DIR: ./log/retinal-lesions/dlv3p_bce-l1_512x512
 RNG_SEED: 1
 LOG_PERIOD: 30
 DEVICE: "cuda:0"
