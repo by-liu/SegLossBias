@@ -5,7 +5,7 @@ from terminaltables import AsciiTable
 from medpy import metric
 
 from .evaluator import DatasetEvaluator
-from .metric import dice_coef, getHausdorff
+from .metric import dice_coef
 
 logger = logging.getLogger(__name__)
 
