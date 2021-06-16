@@ -4,7 +4,9 @@ import torch.nn as nn
 import segmentation_models_pytorch as smp
 
 from seglossbias.config.registry import Registry
-from .compound_losses import CompoundLoss, CrossEntropyWithL1, CrossEntropyWithKL
+from .compound_losses import (
+    CompoundLoss, CrossEntropyWithL1, CrossEntropyWithKL, CrossEntropyWithDice
+)
 from .dice import DiceLoss, GeneralisedDiceLoss
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,21 @@ LOSS_REGISTRY.register(
 LOSS_REGISTRY.register(
     "CE+KL",
     lambda cfg: CrossEntropyWithKL(
+        mode=cfg.MODEL.MODE,
+        alpha=cfg.LOSS.ALPHA,
+        factor=cfg.LOSS.ALPHA_FACTOR,
+        step_size=cfg.LOSS.ALPHA_STEP_SIZE,
+        temp=cfg.LOSS.TEMP,
+        ignore_index=cfg.LOSS.IGNORE_INDEX,
+        background_index=cfg.LOSS.BACKGROUND_INDEX,
+        weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
+    )
+)
+
+
+LOSS_REGISTRY.register(
+    "CE+Dice",
+    lambda cfg: CrossEntropyWithDice(
         mode=cfg.MODEL.MODE,
         alpha=cfg.LOSS.ALPHA,
         factor=cfg.LOSS.ALPHA_FACTOR,

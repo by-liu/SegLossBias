@@ -57,6 +57,7 @@ class DefaultTester:
 
     def build_meter(self):
         self.evaluator = build_evaluator(self.cfg)
+        self.evaluator.set_hd95()
         self.batch_time_meter = AverageMeter()
 
     def reset_meter(self):
@@ -78,7 +79,9 @@ class DefaultTester:
     def log_epoch_info(self, evaluator):
         log_str = []
         log_str.append("Test Samples[{}]".format(evaluator.num_samples()))
-        log_str.append("{} {:.4f}".format(evaluator.main_metric(), evaluator.mean_score()))
+        log_str.append("{} {:.4f} HD95 {:.2f}".format(
+            evaluator.main_metric(), evaluator.mean_score(), evaluator.mean_hd95())
+        )
         logger.info("\t".join(log_str))
 
         if self.cfg.MODEL.NUM_CLASSES > 1:
@@ -106,12 +109,16 @@ class DefaultTester:
         max_iter = len(self.data_loader)
         end = time.time()
         for i, samples in enumerate(self.data_loader):
+            # print(i)
             inputs, labels = samples[0].to(self.device), samples[1].to(self.device)
             # forward
             outputs = self.model(inputs)
             predicts = self.model.act(outputs)
             score = self.evaluator.update(predicts.detach().cpu().numpy(),
                                           labels.detach().cpu().numpy())
+            self.evaluator.update_hd95(predicts.detach().cpu().numpy(),
+                                       labels.detach().cpu().numpy())
+
             # measure elapsed time
             self.batch_time_meter.update(time.time() - end)
             self.save_predicts_or_not(predicts, samples[-1])

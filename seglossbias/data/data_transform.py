@@ -26,63 +26,62 @@ cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
 
 
-@DATA_TRANSFORM.register("retinal-lesions")
-def retinal_lesion(cfg: CfgNode, is_train: bool = True) -> A.Compose:
-    height, width = cfg.DATA.RESIZE
-    if is_train:
-        transformer = A.Compose([
-            A.HorizontalFlip(),
-            A.OneOf([
-                A.RandomContrast(),
-                A.RandomGamma(),
-                A.RandomBrightness(),
-                ], p=0.3),
-            A.OneOf([
-                A.ElasticTransform(alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
-                A.GridDistortion(),
-                A.OpticalDistortion(distort_limit=2, shift_limit=0.5),
-                ], p=0.3),
-            A.ShiftScaleRotate(),
-            A.Resize(height, width, always_apply=True),
-            A.Normalize(),
-            ToTensorV2()
-        ])
-    else:
-        transformer = A.Compose([
-            A.Resize(height, width, always_apply=True),
-            A.Normalize(),
-            ToTensorV2()
-        ])
-
-    return transformer
-
-
 # @DATA_TRANSFORM.register("retinal-lesions")
-# def retinal_lesion(cfg : CfgNode, is_train : bool = True) -> p_tr.Compose:
-#     normalize = p_tr.Normalize(
-#         mean=cfg.DATA.MEAN, std=cfg.DATA.STD
-#     )
+# def retinal_lesion(cfg: CfgNode, is_train: bool = True) -> A.Compose:
+#     height, width = cfg.DATA.RESIZE
 #     if is_train:
-#         transformer = p_tr.Compose([
-#             p_tr.Resize(cfg.DATA.RESIZE),
-#             p_tr.RandomChoice([
-#                 p_tr.RandomAffine(degrees=0, scale=(0.95, 1.20)),
-#                 p_tr.RandomAffine(degrees=0, translate=(0.05, 0)),
-#                 p_tr.RandomRotation(degrees=45, fill=(0, 0, 0), fill_tg=(0,))
-#             ]),
-#             p_tr.RandomHorizontalFlip(),
-#             p_tr.RandomVerticalFlip(),
-#             p_tr.ToTensor(),
-#             normalize
+#         transformer = A.Compose([
+#             A.HorizontalFlip(),
+#             A.OneOf([
+#                 A.RandomContrast(),
+#                 A.RandomGamma(),
+#                 A.RandomBrightness(),
+#                 ], p=0.3),
+#             A.OneOf([
+#                 A.ElasticTransform(alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
+#                 A.GridDistortion(),
+#                 A.OpticalDistortion(distort_limit=2, shift_limit=0.5),
+#                 ], p=0.3),
+#             A.ShiftScaleRotate(),
+#             A.Resize(height, width, always_apply=True),
+#             A.Normalize(),
+#             ToTensorV2()
 #         ])
 #     else:
-#         transformer = p_tr.Compose([
-#             p_tr.Resize(cfg.DATA.RESIZE),
-#             p_tr.ToTensor(),
-#             normalize,
+#         transformer = A.Compose([
+#             A.Resize(height, width, always_apply=True),
+#             A.Normalize(),
+#             ToTensorV2()
 #         ])
 
 #     return transformer
+
+
+@DATA_TRANSFORM.register("retinal-lesions")
+def retinal_lesion(cfg : CfgNode, is_train : bool = True) -> p_tr.Compose:
+    normalize = p_tr.Normalize(
+        mean=cfg.DATA.MEAN, std=cfg.DATA.STD
+    )
+    if is_train:
+        transformer = p_tr.Compose([
+            p_tr.Resize(cfg.DATA.RESIZE),
+            p_tr.RandomChoice([
+                p_tr.RandomAffine(degrees=0, scale=(0.95, 1.20)),
+                p_tr.RandomAffine(degrees=0, translate=(0.05, 0)),
+                p_tr.RandomRotation(degrees=45, fill=(0, 0, 0), fill_tg=(0,))
+            ]),
+            p_tr.RandomHorizontalFlip(),
+            p_tr.RandomVerticalFlip(),
+            p_tr.ToTensor(),
+            normalize
+        ])
+    else:
+        transformer = p_tr.Compose([
+            p_tr.Resize(cfg.DATA.RESIZE),
+            p_tr.ToTensor(),
+            normalize,
+        ])
+    return transformer
 
 
 @DATA_TRANSFORM.register("cityscapes")

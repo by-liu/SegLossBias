@@ -83,10 +83,10 @@ class RetinalLesionsDataset(Dataset):
         )
 
         if self.transforms is not None:
-            result = self.transforms(image=img, mask=target)
-            img = result["image"]
-            target = result["mask"].long()
-            # img, target = self.transforms(Image.fromarray(img), Image.fromarray(target))
+            # result = self.transforms(image=img, mask=target)
+            # img = result["image"]
+            # target = result["mask"].long()
+            img, target = self.transforms(Image.fromarray(img), Image.fromarray(target))
             target = torch.unsqueeze(target, 0).type(torch.float32)
         ret = [img, target]
 
