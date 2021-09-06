@@ -1,4 +1,5 @@
 import os.path as osp
+import os
 import logging
 import torch
 from yacs.config import CfgNode as CN
@@ -37,6 +38,34 @@ def save_checkpoint(
     if best_checkpoint:
         with open(osp.join(save_dir, "best_checkpoint"), "w") as wf:
             wf.write(model_name)
+
+
+def save_checkpoint_v2(
+    save_dir: str,
+    model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    scheduler: torch.optim.lr_scheduler,
+    epoch: int,
+    best_checkpoint: bool = False,
+    val_score: Optional[float] = None,
+    keep_checkpoint_num: int = 1
+) -> None:
+    state = {
+        "epoch": epoch,
+        "state_dict": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "scheduler": scheduler.state_dict()
+    }
+    if val_score:
+        state["val_score"] = val_score
+    torch.save(state, osp.join(save_dir, "last.pth"))
+    if best_checkpoint:
+        torch.save(state, osp.join(save_dir, "best.pth"))
+    if keep_checkpoint_num > 1:
+        torch.save(state, osp.join(save_dir, "epoch_{}.pth".format(epoch + 1)))
+        remove_file = osp.join(save_dir, "epoch_{}.pth".format(epoch + 1 - keep_checkpoint_num))
+        if osp.exists(remove_file):
+            os.remove(remove_file)
 
 
 def load_checkpoint(model_path : str, model : torch.nn.Module, device) -> None:

@@ -1,14 +1,18 @@
 import sys
+import os.path as osp
 import logging
+from datetime import datetime
 
 from seglossbias.utils import mkdir, set_random_seed, setup_logging
-from seglossbias.engine import default_argument_parser, load_config, DefaultTrainer
+from seglossbias.engine import default_argument_parser, load_config, DefaultTrainer, TrainerV2
 
 logger = logging.getLogger(__name__)
 
 
 def setup(args):
     cfg = load_config(args)
+    date_time = datetime.now().strftime("%Y%m%d-%H:%M:%S")
+    cfg.OUTPUT_DIR = osp.join(cfg.OUTPUT_DIR, date_time)
     mkdir(cfg.OUTPUT_DIR)
     setup_logging(output_dir=cfg.OUTPUT_DIR)
     set_random_seed(
@@ -23,7 +27,8 @@ def main():
     cfg = setup(args)
     logger.info("Launch command : ")
     logger.info(" ".join(sys.argv))
-    trainer = DefaultTrainer(cfg)
+    # trainer = DefaultTrainer(cfg)
+    trainer = TrainerV2(cfg)
     trainer.train()
 
 

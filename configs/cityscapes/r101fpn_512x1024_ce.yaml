@@ -1,6 +1,6 @@
 MODEL:
   ARCH: "Fpn"
-  ENCODER: "resnet50"
+  ENCODER: "resnet101"
   ENCODER_WEIGHTS: "imagenet"
   NUM_CLASSES: 19
   MODE: "multiclass"
@@ -27,14 +27,14 @@ TRAIN:
   CHECKPOINT_PERIOD: 1
   CALCULATE_METRIC: True
 VAL:
-  BATCH_SIZE: 8
+  BATCH_SIZE: 4
 TEST:
   BATCH_SIZE: 4
   BEST_CHECKPOINT: False
   SAVE_PREDICTS: False
 TENSORBOARD:
   ENABLE: False
-OUTPUT_DIR: ./log/cityscapes/r50fpn_512x1024_ce
+OUTPUT_DIR: ./log/cityscapes/r101fpn_512x1024_ce
 RNG_SEED: 1
 LOG_PERIOD: 50
 DEVICE: "cuda:0"

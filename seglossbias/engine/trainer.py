@@ -77,7 +77,12 @@ class DefaultTrainer:
                 config=convert_cfg_to_dict(self.cfg),
                 tags=["train"]
             )
+            wandb.run.name = "{}-{}-{}".format(
+                wandb.run.id, self.cfg.DATA.NAME, self.cfg.LOSS.NAME
+            )
+            wandb.run.save()
             wandb.watch(self.model, log=None)
+            logger.info("Wandb initialized : {}".format(wandb.run.name))
 
     def close(self):
         if self.writer is not None:
@@ -268,20 +273,20 @@ class DefaultTrainer:
                                    batch_time_meter=self.batch_time_meter,
                                    loss_meter=self.loss_meter,
                                    score=score, lr=lr)
-            self.tensorbaord_iter_info_or_not(
-                i, max_iter, epoch,
-                phase="train",
-                loss_meter=self.loss_meter,
-                score=score,
-                lr=lr
-            )
-            self.wandb_iter_info_or_not(
-                i, max_iter, epoch,
-                phase="train",
-                loss_meter=self.loss_meter,
-                score=score,
-                lr=lr
-            )
+                self.tensorbaord_iter_info_or_not(
+                    i, max_iter, epoch,
+                    phase="train",
+                    loss_meter=self.loss_meter,
+                    score=score,
+                    lr=lr
+                )
+                self.wandb_iter_info_or_not(
+                    i, max_iter, epoch,
+                    phase="train",
+                    loss_meter=self.loss_meter,
+                    score=score,
+                    lr=lr
+                )
             end = time.time()
         self.log_epoch_info(epoch,
                             phase="train",

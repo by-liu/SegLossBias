@@ -1,7 +1,7 @@
 import numpy as np
 import logging
-from typing import Optional
 from terminaltables import AsciiTable
+import wandb
 
 from .evaluator import DatasetEvaluator
 from .metric import intersect_and_union
@@ -34,7 +34,7 @@ class CityscapesEvaluator(DatasetEvaluator):
         self.nsamples = 0
 
     def main_metric(self):
-        return "IOU"
+        return "miou"
 
     def update(self, pred: np.array, target: np.array):
         pred_labels = np.argmax(pred, axis=1)
@@ -62,11 +62,45 @@ class CityscapesEvaluator(DatasetEvaluator):
 
         iou = total_area_intersect.sum() / (np.spacing(1) + total_area_union.sum())
 
+        self.curr = {"iou": iou}
+
         return iou
 
-    def mean_score(self):
-        miou = (self.total_area_intersect / (np.spacing(1) + self.total_area_union)).mean()
-        return miou
+    def curr_score(self):
+        return self.curr
+
+    def mean_score(self, all_metric=False):
+        class_acc = self.total_area_intersect / (np.spacing(1) + self.total_area_label)
+        class_iou = self.total_area_intersect / (np.spacing(1) + self.total_area_union)
+
+        class_table_data = [["id"] + ["Class"] + ["IoU"] + ["acc"]]
+        for i in range(class_acc.shape[0]):
+            class_table_data.append(
+                [i] + [self.classes[i]]
+                + ["{:.4f}".format(class_iou[i])]
+                + ["{:.4f}".format(class_acc[i])]
+            )
+        miou = np.mean(class_iou)
+        macc = np.mean(class_acc)
+        class_table_data.append(
+            [None] + ["mean"]
+            + ["{:.4f}".format(miou)]
+            + ["{:.4f}".format(macc)]
+        )
+
+        metric = {"miou": miou, "macc": macc}
+
+        if not all_metric:
+            return miou
+        else:
+            return metric, class_table_data
+
+    def wandb_score_table(self):
+        _, table_data = self.mean_score(all_metric=True)
+        return wandb.Table(
+            columns=table_data[0],
+            data=table_data[1:]
+        )
 
     def class_score(self):
         class_acc = self.total_area_intersect / (np.spacing(1) + self.total_area_label)

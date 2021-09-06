@@ -1,6 +1,6 @@
 MODEL:
   ARCH: "Fpn"
-  ENCODER: "resnet50"
+  ENCODER: "resnet101"
   ENCODER_WEIGHTS: "imagenet"
   NUM_CLASSES: 19
   MODE: "multiclass"
@@ -11,7 +11,9 @@ DATA:
   RESIZE: [512, 1024] # [768, 768]
   NUM_WORKERS: 8
 LOSS:
-  NAME: "CE"
+  NAME: "CE+L1"
+  ALPHA: 5.0
+  TEMP: 10.0
   IGNORE_INDEX: 255
 SOLVER:
   OPTIMIZING_METHOD: "sgd"
@@ -26,15 +28,14 @@ TRAIN:
   EVAL_PERIOD: 1
   CHECKPOINT_PERIOD: 1
   CALCULATE_METRIC: True
+  # AUTO_RESUME: True
 VAL:
   BATCH_SIZE: 8
 TEST:
   BATCH_SIZE: 4
-  BEST_CHECKPOINT: False
-  SAVE_PREDICTS: False
 TENSORBOARD:
   ENABLE: False
-OUTPUT_DIR: ./log/cityscapes/r50fpn_512x1024_ce
+OUTPUT_DIR: ./log/cityscapes/r50fpn_512x1024_ce_l1
 RNG_SEED: 1
 LOG_PERIOD: 50
 DEVICE: "cuda:0"
