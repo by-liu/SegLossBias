@@ -12,7 +12,7 @@ from seglossbias.solver import build_optimizer, build_scheduler, get_lr
 from seglossbias.evaluation import build_evaluator, AverageMeter, LossMeter
 from seglossbias.data import build_data_pipeline
 from seglossbias.utils import (
-    TensorboardWriter, load_train_checkpoint, save_checkpoint, load_checkpoint
+    load_train_checkpoint, save_checkpoint, load_checkpoint
 )
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,6 @@ class DefaultTrainer:
         self.build_dataloader()
         self.build_solver()
         self.build_meter()
-        self.init_tensorboard_or_not()
         self.init_wandb_or_not()
 
     def build_model(self):
@@ -66,9 +65,6 @@ class DefaultTrainer:
         self.data_time_meter.reset()
         self.loss_meter.reset()
 
-    def init_tensorboard_or_not(self):
-        self.writer = TensorboardWriter(self.cfg) if self.cfg.TENSORBOARD.ENABLE else None
-
     def init_wandb_or_not(self):
         if self.cfg.WANDB.ENABLE:
             wandb.init(
@@ -92,30 +88,6 @@ class DefaultTrainer:
         self.start_epoch, self.best_epoch, self.best_score = load_train_checkpoint(
             self.cfg, self.model, self.optimizer, self.scheduler)
 
-    def tensorbaord_iter_info_or_not(
-        self, iter, max_iter, epoch, phase="train",
-        loss_meter=None, score=None, lr=None
-    ):
-        if not self.writer:
-            return
-        if loss_meter is not None:
-            loss_dict = loss_meter.get_vals()
-            for key, val in loss_dict.items():
-                self.writer.add_scalars(
-                    {"{}/Iter/{}".format(phase, key): val},
-                    global_step=epoch * max_iter + iter
-                )
-        if score is not None:
-            self.writer.add_scalars(
-                {"{}/Iter/{}".format(phase, self.evaluator.main_metric()): score},
-                global_step=epoch * max_iter + iter
-            )
-        if lr is not None:
-            self.writer.add_scalars(
-                {"{}/Iter/lr".format(phase): lr},
-                global_step=epoch * max_iter + iter
-            )
-
     def wandb_iter_info_or_not(
         self, iter, max_iter, epoch, phase="train",
         loss_meter=None, score=None, lr=None
@@ -130,13 +102,10 @@ class DefaultTrainer:
             loss_dict = loss_meter.get_vals()
             for key, val in loss_dict.items():
                 log_dict["{}/Iter/{}".format(phase, key)] = val
-                # neptune.log_metric("{}/Iter/{}".format(phase, key), val)
         if score is not None:
             log_dict["{}/Iter/{}".format(phase, self.evaluator.main_metric())] = score
-            # neptune.log_metric("{}/Iter/{}".format(phase, self.evaluator.main_metric()), score)
         if lr is not None:
             log_dict["{}/Iter/lr".format(phase)] = lr
-            # neptune.log_metric("{}/Iter/lr".format(phase), lr)
         wandb.log(log_dict)
 
     def log_iter_info(
@@ -199,15 +168,10 @@ class DefaultTrainer:
             loss_dict = loss_meter.get_vals()
             for key, val in loss_dict.items():
                 log_dict["{}/Epoch/{}".format(phase, key)] = val
-                # neptune.log_metric("{}/Epoch/{}".format(phase, key), val)
         if isinstance(self.loss_func, CompoundLoss):
             log_dict["{}/Epoch/alpha".format(phase)] = self.loss_func.alpha
-            # neptune.log_metric("{}/Epoch/alpha".format(phase), self.loss_func.alpha)
         if evaluator is not None:
             log_dict["{}/Epoch/{}".format(phase, evaluator.main_metric())] = evaluator.mean_score()
-            # neptune.log_metric(
-            #     "{}/Epoch/{}".format(phase, evaluator.main_metric()), evaluator.mean_score()
-            # )
         wandb.log(log_dict)
 
     def log_epoch_info(
@@ -273,13 +237,6 @@ class DefaultTrainer:
                                    batch_time_meter=self.batch_time_meter,
                                    loss_meter=self.loss_meter,
                                    score=score, lr=lr)
-                self.tensorbaord_iter_info_or_not(
-                    i, max_iter, epoch,
-                    phase="train",
-                    loss_meter=self.loss_meter,
-                    score=score,
-                    lr=lr
-                )
                 self.wandb_iter_info_or_not(
                     i, max_iter, epoch,
                     phase="train",
@@ -335,9 +292,6 @@ class DefaultTrainer:
                                    batch_time_meter=self.batch_time_meter,
                                    loss_meter=self.loss_meter,
                                    score=score)
-                self.tensorbaord_iter_info_or_not(
-                    i, max_iter, epoch, phase=phase, loss_meter=self.loss_meter, score=score
-                )
                 self.wandb_iter_info_or_not(
                     i, max_iter, epoch, phase=phase, loss_meter=self.loss_meter, score=score
                 )

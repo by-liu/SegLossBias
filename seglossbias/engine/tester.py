@@ -57,7 +57,8 @@ class DefaultTester:
 
     def build_meter(self):
         self.evaluator = build_evaluator(self.cfg)
-        self.evaluator.set_hd95()
+        if self.cfg.DATA.NAME == "retinal-lesions":
+            self.evaluator.set_hd95()
         self.batch_time_meter = AverageMeter()
 
     def reset_meter(self):
@@ -79,9 +80,14 @@ class DefaultTester:
     def log_epoch_info(self, evaluator):
         log_str = []
         log_str.append("Test Samples[{}]".format(evaluator.num_samples()))
-        log_str.append("{} {:.4f} HD95 {:.2f}".format(
-            evaluator.main_metric(), evaluator.mean_score(), evaluator.mean_hd95())
-        )
+        if self.cfg.DATA.NAME == "retinal-lesions":
+            log_str.append("{} {:.4f} HD95 {:.2f}".format(
+                evaluator.main_metric(), evaluator.mean_score(), evaluator.mean_hd95())
+            )
+        else:
+            log_str.append("{} {:.4f}".format(
+                evaluator.main_metric(), evaluator.mean_score())
+            )
         logger.info("\t".join(log_str))
 
         if self.cfg.MODEL.NUM_CLASSES > 1:
@@ -116,8 +122,10 @@ class DefaultTester:
             predicts = self.model.act(outputs)
             score = self.evaluator.update(predicts.detach().cpu().numpy(),
                                           labels.detach().cpu().numpy())
-            self.evaluator.update_hd95(predicts.detach().cpu().numpy(),
-                                       labels.detach().cpu().numpy())
+            if self.cfg.DATA.NAME == "retinal-lesions":
+                self.evaluator.update_hd95(
+                    predicts.detach().cpu().numpy(), labels.detach().cpu().numpy()
+                )
 
             # measure elapsed time
             self.batch_time_meter.update(time.time() - end)
@@ -148,15 +156,35 @@ class ImageFolderTester(DefaultTester):
         mkdir(self.save_path)
 
     def save_predicts(self, predicts, sample_ids):
-        if self.cfg.MODEL.NUM_CLASSES == 1:
+        if self.cfg.MODEL.NUM_CLASSES == 1 or self.cfg.MODEL.MODE == "multilabel":
             pred_labels = (predicts.squeeze(dim=1) > self.cfg.THRES).int().cpu().numpy()
         else:
             pred_labels = torch.argmax(predicts, dim=1).cpu().numpy()
 
         for i, sample_id in enumerate(sample_ids):
-            out_image = np.uint8(pred_labels[i] * 255)
-            out_file = osp.join(self.save_path, osp.splitext(sample_id)[0] + ".png")
-            cv2.imwrite(out_file, out_image)
+            mask = pred_labels[i]
+            if mask.ndim == 2:
+                out_image = np.uint8(pred_labels[i] * 255)
+                out_file = osp.join(self.save_path, osp.splitext(sample_id)[0] + ".png")
+                cv2.imwrite(out_file, out_image)
+            else:
+                for j in range(mask.shape[0]):
+                    if mask[j].any():
+                        out_image = np.uint8(mask[j] * 255)
+                        out_file = osp.join(self.save_path, osp.splitext(sample_id)[0] + "-{}.png".format(j))
+                        cv2.imwrite(out_file, out_image)
+
+    def get_labels(self, predicts):
+        pred_labels = (predicts > self.cfg.THRES).int().cpu().numpy()
+        labels = []
+        for i in range(pred_labels.shape[0]):
+            label = []
+            mask = pred_labels[i]
+            for j in range(mask.shape[0]):
+                if mask[j].any():
+                    label.append(str(j))
+            labels.append(",".join(label))
+        return labels
 
     @torch.no_grad()
     def test(self):
@@ -165,6 +193,10 @@ class ImageFolderTester(DefaultTester):
         self.model.eval()
         max_iter = len(self.data_loader)
         end = time.time()
+
+        if self.cfg.TEST.SAVE_LABELS:
+            fsave = open(osp.join(self.save_path, "predicts.txt"), "w")
+
         for i, samples in enumerate(self.data_loader):
             inputs, sample_ids = samples[0].to(self.device), samples[1]
             # forward
@@ -172,6 +204,12 @@ class ImageFolderTester(DefaultTester):
             predicts = self.model.act(outputs)
             # save predicts to predicted mask image
             self.save_predicts(predicts, sample_ids)
+            if self.cfg.TEST.SAVE_LABELS:
+                labels = self.get_labels(predicts)
+                for j, sample_id in enumerate(sample_ids):
+                    fsave.write(
+                        "{} {}".format(osp.splitext(sample_id)[0], labels[j])
+                    )
             timer.update(time.time() - end)
             logger.info(
                 "Test Epoch[{}/{}] Time {timer.val:.3f} ({timer.avg:.3f})".format(

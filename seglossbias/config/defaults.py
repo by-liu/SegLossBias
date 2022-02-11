@@ -268,29 +268,6 @@ _C.TRANSDUCTIVE.WEIGHT_DECAY = 1e-4
 
 _C.TRANSDUCTIVE.VERBOSE = False
 
-# -----------------------------------------------------------------------------
-# Tensorboard Visualization Options
-# -----------------------------------------------------------------------------
-_C.TENSORBOARD = CN()
-
-# Log to summary writer, this will automatically.
-# log loss, lr and metrics during train/eval.
-_C.TENSORBOARD.ENABLE = False
-
-# If ture, plot score for each class.
-_C.TENSORBOARD.PLOT_CLASS_SCORE = False
-
-# Path of a txt file providing class names
-_C.TENSORBOARD.CLASSES_NAMES_PATH = ""
-
-# -------------------------------------------------------------
-# Neptune(https://neptune.ai/) : Experiment management platform
-# -------------------------------------------------------------
-_C.NEPTUNE = CN()
-_C.NEPTUNE.ENABLE = False
-_C.NEPTUNE.USER_NAME = "bingyuan"
-_C.NEPTUNE.PROJECT_NAME = "seg-loss-bias"
-_C.NEPTUNE.EXP_NAME = "train"
 
 # -------------------------------------------------------------
 # Wandb(https://wandb.ai/) : Experiment management platform

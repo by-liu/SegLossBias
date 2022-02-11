@@ -12,7 +12,7 @@ DATA:
   NUM_WORKERS: 8
 LOSS:
   NAME: "CE+L1"
-  ALPHA: 5.0
+  ALPHA: 1.0
   TEMP: 10.0
   IGNORE_INDEX: 255
 SOLVER:
@@ -33,9 +33,7 @@ VAL:
   BATCH_SIZE: 8
 TEST:
   BATCH_SIZE: 4
-TENSORBOARD:
-  ENABLE: False
-OUTPUT_DIR: ./log/cityscapes/r50fpn_512x1024_ce_l1
+OUTPUT_DIR: ./log/cityscapes/r101fpn_512x1024_ce_l1
 RNG_SEED: 1
 LOG_PERIOD: 50
 DEVICE: "cuda:0"

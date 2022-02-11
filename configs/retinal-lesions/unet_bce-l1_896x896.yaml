@@ -41,10 +41,6 @@ TEST:
   DATA_PATH: "test.txt"
   BATCH_SIZE: 4
   CHECKPOINT_PATH: ""
-TENSORBOARD:
-  ENABLE: False
-NEPTUNE:
-  ENABLE: False
 OUTPUT_DIR: ./log/retinal-lesions/unet_bce-l1_896x896
 RNG_SEED: 2
 LOG_PERIOD: 30

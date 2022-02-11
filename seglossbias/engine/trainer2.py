@@ -11,7 +11,7 @@ from terminaltables.ascii_table import AsciiTable
 
 from .trainer import DefaultTrainer
 from seglossbias.solver import get_lr
-from seglossbias.utils import round_dict, save_checkpoint_v2, load_checkpoint
+from seglossbias.utils import round_dict, save_checkpoint_v2, load_checkpoint, load_train_checkpoint_v2
 from seglossbias.modeling.compound_losses import CompoundLoss
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ class TrainerV2(DefaultTrainer):
             self.data_time_meter.update(time.time() - end)
             # decouple samples
             inputs, labels = samples[0].to(self.device), samples[1].to(self.device)
+            import ipdb; ipdb.set_trace()
             # forward
             outputs = self.model(inputs)
             loss = self.loss_func(outputs, labels)
@@ -111,6 +112,9 @@ class TrainerV2(DefaultTrainer):
         self.reset_meter()
         self.model.eval()
 
+        if phase.lower() == "test" and self.cfg.DATA.NAME == "retinal-lesions":
+            self.evaluator.compute_hd95 = True
+
         max_iter = len(data_loader)
         end = time.time()
         for i, samples in enumerate(data_loader):
@@ -135,6 +139,18 @@ class TrainerV2(DefaultTrainer):
         self.log_epoch_info(epoch, phase=phase)
 
         return self.loss_meter.avg(0), self.evaluator.mean_score()
+
+    def start_or_resume(self):
+        if self.cfg.TRAIN.AUTO_RESUME:
+            self.start_epoch, self.best_epoch, self.best_score = (
+                load_train_checkpoint_v2(
+                    self.cfg.OUTPUT_DIR, self.device, self.model,
+                    optimizer=self.optimizer,
+                    scheduler=self.scheduler
+                )
+            )
+        else:
+            self.start_epoch, self.best_epoch, self.best_score = 0, -1, None
 
     def train(self):
         self.start_or_resume()
@@ -187,7 +203,7 @@ class TrainerV2(DefaultTrainer):
         logger.info("#################")
         logger.info("Best epoch[{}] :".format(epoch + 1))
         load_checkpoint(
-            osp.join(self.OUTPUT_DIR, "best.pth"), self.model, self.device
+            osp.join(self.cfg.OUTPUT_DIR, "best.pth"), self.model, self.device
         )
         test_loader = build_data_pipeline(self.cfg, "test")
         self.eval_epoch(test_loader, epoch, phase="Test")

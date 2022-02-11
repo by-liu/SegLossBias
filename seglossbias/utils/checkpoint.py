@@ -3,7 +3,7 @@ import os
 import logging
 import torch
 from yacs.config import CfgNode as CN
-from typing import Optional
+from typing import Optional, Tuple
 
 from .file_io import mkdir, load_list
 
@@ -128,6 +128,34 @@ def load_train_checkpoint(cfg : CN, model : torch.nn.Module,
         logger.info("Succeed to load weights from {}".format(last_checkpoint_path))
         best_checkpoint_path = get_best_model_path(cfg)
         checkpoint = torch.load(best_checkpoint_path, map_location=cfg.DEVICE)
+        best_epoch = checkpoint["epoch"]
+        best_score = checkpoint["val_score"] if "val_score" in checkpoint else None
+        return epoch + 1, best_epoch, best_score
+    except Exception:
+        return 0, -1, None
+
+
+def load_train_checkpoint_v2(
+    work_dir: str,
+    device: torch.device,
+    model: torch.nn.Module,
+    optimizer: Optional[torch.optim.Optimizer] = None,
+    scheduler: Optional[object] = None
+) -> Tuple:
+
+    try:
+        last_checkpoint_path = osp.join(work_dir, "last.pth")
+        checkpoint = torch.load(last_checkpoint_path, map_location=device)
+        epoch = checkpoint["epoch"]
+        model.load_state_dict(checkpoint["state_dict"], strict=True)
+        if optimizer:
+            optimizer.load_state_dict(checkpoint["optimizer"])
+        if scheduler:
+            scheduler.load_state_dict(checkpoint["scheduler"])
+        logger.info("Succeed to load train info from {}".format(last_checkpoint_path))
+
+        best_checkpoint_path = osp.join(work_dir, "best.pth")
+        checkpoint = torch.load(best_checkpoint_path, map_location=device)
         best_epoch = checkpoint["epoch"]
         best_score = checkpoint["val_score"] if "val_score" in checkpoint else None
         return epoch + 1, best_epoch, best_score

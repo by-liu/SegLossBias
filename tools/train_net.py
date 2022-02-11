@@ -11,9 +11,10 @@ logger = logging.getLogger(__name__)
 
 def setup(args):
     cfg = load_config(args)
-    date_time = datetime.now().strftime("%Y%m%d-%H:%M:%S")
-    cfg.OUTPUT_DIR = osp.join(cfg.OUTPUT_DIR, date_time)
-    mkdir(cfg.OUTPUT_DIR)
+    if not cfg.TRAIN.AUTO_RESUME:
+        date_time = datetime.now().strftime("%Y%m%d-%H:%M:%S")
+        cfg.OUTPUT_DIR = osp.join(cfg.OUTPUT_DIR, date_time)
+        mkdir(cfg.OUTPUT_DIR)
     setup_logging(output_dir=cfg.OUTPUT_DIR)
     set_random_seed(
         seed=None if cfg.RNG_SEED < 0 else cfg.RNG_SEED,

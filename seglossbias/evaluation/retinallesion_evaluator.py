@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 from terminaltables import AsciiTable
 from medpy import metric
+import wandb
 
 from .evaluator import DatasetEvaluator
 from .metric import dice_coef
@@ -28,6 +29,7 @@ class RetinalLesionEvaluator(DatasetEvaluator):
 
     def reset(self):
         self.all_dices = None
+        self.all_hd95 = []
 
     def update_hd95(self, pred: np.array, target: np.array) -> np.array:
         pred = (pred > self.thres).astype(np.int8)
@@ -56,14 +58,41 @@ class RetinalLesionEvaluator(DatasetEvaluator):
         else:
             self.all_dices = np.concatenate((self.all_dices, dices), axis=0)
 
-        return dices.mean()
+        self.curr = {"dsc": float(dices.mean())}
+
+        if self.compute_hd95:
+            self.update_hd95(pred, target)
+
+        return self.curr["dsc"]
 
     def main_metric(self):
-        return "DSC"
+        return "dsc"
 
-    def mean_score(self):
-        dice = np.mean(self.all_dices)
-        return dice
+    def curr_score(self):
+        return self.curr
+
+    def mean_score(self, all_metric=False):
+        dice = float(np.mean(self.all_dices))
+
+        scores = np.mean(self.all_dices, axis=0)
+        class_table_data = [["id"] + ["Class"] + ["DSC"]]
+        for i in range(scores.shape[0]):
+            class_table_data.append(
+                [i] + [self.classes[i]] + ["{:.4f}".format(scores[i])]
+            )
+        class_table_data.append(
+            [None] + ["mean"] + ["{:.4f}".format(np.mean(scores))]
+        )
+
+        metric = {"dsc": dice}
+        if self.compute_hd95:
+            hd = self.mean_hd95()
+            metric["hd95"] = float(hd)
+
+        if not all_metric:
+            return dice
+        else:
+            return metric, class_table_data
 
     def class_score(self):
         if self.all_dices.shape[1] != len(self.classes):
@@ -78,8 +107,15 @@ class RetinalLesionEvaluator(DatasetEvaluator):
                 [i] + [self.classes[i]] + ["{:.4f}".format(scores[i])]
             )
         class_table_data.append(
-            [""] + ["mean"] + ["{:.4f}".format(np.mean(scores))]
+            [None] + ["mean"] + ["{:.4f}".format(np.mean(scores))]
         )
         table = AsciiTable(class_table_data)
         logger.info("\n" + table.table)
         return scores
+
+    def wandb_score_table(self):
+        _, table_data = self.mean_score(all_metric=True)
+        return wandb.Table(
+            columns=table_data[0],
+            data=table_data[1:]
+        )

@@ -2,7 +2,7 @@ import sys
 import logging
 
 from seglossbias.utils import mkdir, setup_logging
-from seglossbias.engine import default_argument_parser, load_config, DefaultTester
+from seglossbias.engine import default_argument_parser, load_config, DefaultTester, TesterV2
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def main():
     cfg = setup(args)
     logger.info("Launch command : ")
     logger.info(" ".join(sys.argv))
-    tester = DefaultTester(cfg)
+    tester = TesterV2(cfg)
     tester.test()
 
 
