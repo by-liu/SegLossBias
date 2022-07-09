@@ -34,7 +34,6 @@ class TrainerV2(DefaultTrainer):
             self.data_time_meter.update(time.time() - end)
             # decouple samples
             inputs, labels = samples[0].to(self.device), samples[1].to(self.device)
-            import ipdb; ipdb.set_trace()
             # forward
             outputs = self.model(inputs)
             loss = self.loss_func(outputs, labels)
@@ -165,6 +164,8 @@ class TrainerV2(DefaultTrainer):
                 best_checkpoint = False
             if self.scheduler.name not in {"reduce_on_plateau", "poly"}:
                 self.scheduler.step()
+            elif self.scheduler.name == "reduce_on_plateau":
+                self.scheduler.step(val_loss if self.scheduler.mode == "min" else val_score)
             if isinstance(self.loss_func, CompoundLoss):
                 self.loss_func.adjust_alpha(epoch)
             save_checkpoint_v2(

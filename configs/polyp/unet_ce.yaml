@@ -1,0 +1,44 @@
+MODEL:
+  ARCH: Unet
+  ENCODER: resnet50
+  ENCODER_WEIGHTS: imagenet
+  NUM_CLASSES: 2
+  MODE: multiclass
+  ACT_FUNC: softmax
+DATA:
+  NAME: polyp
+  DATA_ROOT: ./data/polyp
+  NUM_WORKERS: 8
+  SET_NAME: Kvasir
+LOSS:
+  NAME: "CE"
+  IGNORE_INDEX: 255
+SOLVER:
+  OPTIMIZING_METHOD: adam
+  BASE_LR: 0.0001
+  MAX_EPOCH: 50
+  # LR_POLICY: "cosine"
+  LR_POLICY: "reduce_on_plateau"
+  FACTOR: 0.5
+  PATIENCE: 5
+  REDUCE_MODE: max
+TRAIN:
+  BATCH_SIZE: 16
+  EVAL_PERIOD: 1
+  CHECKPOINT_PERIOD: 1
+  CALCULATE_METRIC: True
+VAL:
+  BATCH_SIZE: 8
+TEST:
+  BATCH_SIZE: 8
+  BEST_CHECKPOINT: True
+  SAVE_PREDICTS: False
+WANDB:
+  ENABLE: True
+  PROJECT: iccv2021
+  ENTITY: newton
+OUTPUT_DIR: ./log/polyp/resnet50_unet_ce
+RNG_SEED: 10
+LOG_PERIOD: 10
+DEVICE: "cuda:0"
+PERFORM_TEST: True

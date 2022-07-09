@@ -122,6 +122,38 @@ def cityscapes(cfg : CfgNode, is_train : bool = True) -> A.Compose:
     return transformer
 
 
+@DATA_TRANSFORM.register("voc")
+def voc(cfg: CfgNode, is_train: bool = True) -> A.Compose:
+    if is_train:
+        transformer = A.Compose([
+            A.LongestMaxSize(max_size=640),
+            A.PadIfNeeded(
+                min_height=512, min_width=512,
+                border_mode=cv2.BORDER_CONSTANT,
+                value=(0, 0, 0), mask_value=255
+            ),
+            A.RandomCrop(height=512, width=512),
+            A.HorizontalFlip(),
+            A.RandomBrightnessContrast(brightness_limit=0.3, contrast_limit=0.3, p=0.5),
+            A.HueSaturationValue(),
+            A.Normalize(),
+            ToTensorV2()
+        ])
+    else:
+        transformer = A.Compose([
+            A.LongestMaxSize(max_size=480),
+            A.PadIfNeeded(
+                min_height=480, min_width=480,
+                border_mode=cv2.BORDER_CONSTANT,
+                value=(0, 0, 0), mask_value=255
+            ),
+            A.Normalize(),
+            ToTensorV2()
+        ])
+
+    return transformer
+
+
 @DATA_TRANSFORM.register("image-folder")
 def image_folder(cfg : CfgNode, **kwargs) -> p_tr.Compose:
     normalize = p_tr.Normalize(

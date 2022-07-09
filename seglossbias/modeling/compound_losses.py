@@ -178,11 +178,12 @@ class CrossEntropyWithDice(CompoundLoss):
                  temp: float = 1.,
                  ignore_index: int = 255,
                  background_index: int = -1,
+                 log_dice: bool = True,
                  weight: Optional[torch.Tensor] = None) -> None:
         super().__init__(mode, alpha=alpha, factor=factor, step_size=step_size,
                          max_alpha=max_alpha, temp=temp, ignore_index=ignore_index,
                          background_index=background_index, weight=weight)
-        self.dice = DiceLoss(mode=mode, log_loss=True, ignore_index=self.ignore_index)
+        self.dice = DiceLoss(mode=mode, log_loss=log_dice, ignore_index=self.ignore_index)
 
     def forward(self, inputs: torch.Tensor, labels: torch.Tensor):
         loss_ce = self.cross_entropy(inputs, labels)

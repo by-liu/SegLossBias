@@ -9,7 +9,9 @@ from typing import Callable
 from ..config.registry import Registry
 from .retinal_lesion_dataset import RetinalLesionsDataset
 from .cityscapes import CityscapesDataset
+from .voc import VOCSegmentation
 from .image_folder import ImageFolder
+from .polyp_dataset import PolypDataset
 from .data_transform import build_image_transform
 
 DATASET_REGISTRY = Registry("dataset")
@@ -21,6 +23,17 @@ def cityscapes(cfg : CN, data_transform : A.Compose, split : str = "train") -> D
         data_root=cfg.DATA.DATA_ROOT,
         split=split,
         transforms=data_transform,
+        return_id=True if split in ("val", "test") else False
+    )
+    return dataset
+
+
+@DATASET_REGISTRY.register("voc")
+def voc(cfg: CN, data_transform: A.Compose, split: str = "train") -> Dataset:
+    dataset  = VOCSegmentation(
+        data_root=cfg.DATA.DATA_ROOT,
+        split=split,
+        data_transform=data_transform,
         return_id=True if split in ("val", "test") else False
     )
     return dataset
@@ -42,6 +55,18 @@ def retinal_lesions(cfg : CN, data_transform : A.Compose, split : str = "train")
         binary=cfg.DATA.BINARY,
         region_number=cfg.DATA.REGION_NUMBER,
         return_id=True if split == "test" else False
+    )
+
+    return dataset
+
+
+@DATASET_REGISTRY.register("polyp")
+def polyp(cfg: CN, data_transform: Callable, split: str = "train") -> Dataset:
+    dataset = PolypDataset(
+        data_root=cfg.DATA.DATA_ROOT,
+        split=split,
+        set_name=cfg.DATA.SET_NAME,
+        data_transformer=data_transform,
     )
 
     return dataset

@@ -83,6 +83,8 @@ _C.DATA.NUM_WORKERS = 8
 # For retianl-lesion-class setting
 _C.DATA.CLASS_NAME = "hard_exudate"
 
+# For poly dataset setting
+_C.DATA.SET_NAME = "Kvasir"
 
 # -------------------------------------------------------------
 # Optimizer options

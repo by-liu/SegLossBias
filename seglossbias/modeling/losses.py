@@ -81,6 +81,22 @@ LOSS_REGISTRY.register(
         temp=cfg.LOSS.TEMP,
         ignore_index=cfg.LOSS.IGNORE_INDEX,
         background_index=cfg.LOSS.BACKGROUND_INDEX,
+        log_dice=False,
+        weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
+    )
+)
+
+
+LOSS_REGISTRY.register(
+    "CE+LogDice",
+    lambda cfg: CrossEntropyWithDice(
+        mode=cfg.MODEL.MODE,
+        alpha=cfg.LOSS.ALPHA,
+        factor=cfg.LOSS.ALPHA_FACTOR,
+        step_size=cfg.LOSS.ALPHA_STEP_SIZE,
+        temp=cfg.LOSS.TEMP,
+        ignore_index=cfg.LOSS.IGNORE_INDEX,
+        background_index=cfg.LOSS.BACKGROUND_INDEX,
         weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
     )
 )
