@@ -102,7 +102,7 @@ _C.LOSS.ALPHA = 0.1
 _C.LOSS.ALPHA_STEP_SIZE = 0
 
 # Factor of increasing hyper weight when it triggers adjusting
-_C.LOSS.ALPHA_FACTOR = 5
+_C.LOSS.ALPHA_FACTOR = 5.0
 
 # temperature
 _C.LOSS.TEMP = 1.0
