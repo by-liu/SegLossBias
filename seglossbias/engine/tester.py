@@ -6,13 +6,18 @@ import torch
 import cv2
 import numpy as np
 from yacs.config import CfgNode as CN
+import json
+from terminaltables.ascii_table import AsciiTable
+import wandb
 
+from seglossbias.config import convert_cfg_to_dict
 from seglossbias.modeling import build_model
 from seglossbias.evaluation import build_evaluator, AverageMeter
 from seglossbias.data import build_data_pipeline
 from seglossbias.utils import (
     get_best_model_path, get_last_model_path, mkdir
 )
+from seglossbias.utils.misc import round_dict
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +43,22 @@ class DefaultTester:
                                       "{}_results".format(self.cfg.TEST.SPLIT))
             mkdir(self.save_path)
         self.build_meter()
+        self.init_wandb_or_not()
+
+    def init_wandb_or_not(self):
+        if self.cfg.WANDB.ENABLE:
+            wandb.init(
+                project=self.cfg.WANDB.PROJECT,
+                entity=self.cfg.WANDB.ENTITY,
+                config=convert_cfg_to_dict(self.cfg),
+                tags=["test"]
+            )
+            wandb.run.name = "{}-{}-{}".format(
+                wandb.run.id, self.cfg.DATA.NAME, self.cfg.LOSS.NAME
+            )
+            wandb.run.save()
+            wandb.watch(self.model, log=None)
+            logger.info("Wandb initialized : {}".format(wandb.run.name))
 
     def build_model(self):
         if self.cfg.TEST.CHECKPOINT_PATH:
@@ -78,20 +99,18 @@ class DefaultTester:
         logger.info("\t".join(log_str))
 
     def log_epoch_info(self, evaluator):
-        log_str = []
-        log_str.append("Test Samples[{}]".format(evaluator.num_samples()))
-        if self.cfg.DATA.NAME == "retinal-lesions":
-            log_str.append("{} {:.4f} HD95 {:.2f}".format(
-                evaluator.main_metric(), evaluator.mean_score(), evaluator.mean_hd95())
-            )
-        else:
-            log_str.append("{} {:.4f}".format(
-                evaluator.main_metric(), evaluator.mean_score())
-            )
-        logger.info("\t".join(log_str))
-
-        if self.cfg.MODEL.NUM_CLASSES > 1:
-            evaluator.class_score()
+        log_dict = {}
+        log_dict["samples"] = evaluator.num_samples()
+        metric, table_data = evaluator.mean_score(all_metric=True)
+        log_dict.update(metric)
+        logger.info("Test Epoch\t{}".format(json.dumps(round_dict(log_dict))))
+        logger.info("\n" + AsciiTable(table_data).table)
+        if self.cfg.WANDB.ENABLE:
+            wandb_log_dict = {}
+            wandb_log_dict.update(dict(
+                ("Test/{}".format(key), value) for (key, value) in log_dict.items()
+            ))
+            wandb.log(wandb_log_dict)
 
     def save_predicts_or_not(self, predicts, sample_ids):
         if not self.cfg.TEST.SAVE_PREDICTS:

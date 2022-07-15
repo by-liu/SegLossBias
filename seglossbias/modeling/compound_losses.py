@@ -3,6 +3,7 @@ import logging
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
+import segmentation_models_pytorch as smp
 
 from seglossbias.utils.constants import BINARY_MODE, MULTICLASS_MODE, MULTILABEL_MODE, EPS
 from .dice import DiceLoss
@@ -191,6 +192,31 @@ class CrossEntropyWithDice(CompoundLoss):
         loss = loss_ce + self.alpha * loss_dice
 
         return loss, loss_ce, loss_dice
+
+
+class FocalWithDice(CompoundLoss):
+    def __init__(self, mode: str,
+                 alpha: float = 1.0,
+                 factor: float = 1.0,
+                 step_size: int = 0,
+                 max_alpha: float = 100,
+                 temp: float = 1.,
+                 ignore_index: int = 255,
+                 background_index: int = -1,
+                 log_dice: bool = True,
+                 weight: Optional[torch.Tensor] = None) -> None:
+        super().__init__(mode, alpha=alpha, factor=factor, step_size=step_size,
+                         max_alpha=max_alpha, temp=temp, ignore_index=ignore_index,
+                         background_index=background_index, weight=weight)
+        self.dice = DiceLoss(mode=mode, log_loss=log_dice, ignore_index=self.ignore_index)
+        self.focal = smp.losses.FocalLoss(mode=mode, ignore_index=self.ignore_index)
+
+    def forward(self, inputs: torch.Tensor, labels: torch.Tensor):
+        loss_focal = self.focal(inputs, labels)
+        loss_dice = self.dice(inputs, labels)
+        loss = loss_focal + self.alpha * loss_dice
+
+        return loss, loss_focal, loss_dice
 
 
 class CrossEntropyWithDB(CompoundLoss):

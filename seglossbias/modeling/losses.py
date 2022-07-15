@@ -5,7 +5,8 @@ import segmentation_models_pytorch as smp
 
 from seglossbias.config.registry import Registry
 from .compound_losses import (
-    CompoundLoss, CrossEntropyWithL1, CrossEntropyWithKL, CrossEntropyWithDice, CrossEntropyWithDB
+    CompoundLoss, CrossEntropyWithL1, CrossEntropyWithKL, CrossEntropyWithDice, CrossEntropyWithDB,
+    FocalWithDice
 )
 from .dice import DiceLoss, GeneralisedDiceLoss
 
@@ -97,6 +98,36 @@ LOSS_REGISTRY.register(
         temp=cfg.LOSS.TEMP,
         ignore_index=cfg.LOSS.IGNORE_INDEX,
         background_index=cfg.LOSS.BACKGROUND_INDEX,
+        weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
+    )
+)
+
+LOSS_REGISTRY.register(
+    "Focal+Dice",
+    lambda cfg: FocalWithDice(
+        mode=cfg.MODEL.MODE,
+        alpha=cfg.LOSS.ALPHA,
+        factor=cfg.LOSS.ALPHA_FACTOR,
+        step_size=cfg.LOSS.ALPHA_STEP_SIZE,
+        temp=cfg.LOSS.TEMP,
+        ignore_index=cfg.LOSS.IGNORE_INDEX,
+        background_index=cfg.LOSS.BACKGROUND_INDEX,
+        log_dice=False,
+        weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
+    )
+)
+
+LOSS_REGISTRY.register(
+    "Focal+LogDice",
+    lambda cfg: FocalWithDice(
+        mode=cfg.MODEL.MODE,
+        alpha=cfg.LOSS.ALPHA,
+        factor=cfg.LOSS.ALPHA_FACTOR,
+        step_size=cfg.LOSS.ALPHA_STEP_SIZE,
+        temp=cfg.LOSS.TEMP,
+        ignore_index=cfg.LOSS.IGNORE_INDEX,
+        background_index=cfg.LOSS.BACKGROUND_INDEX,
+        log_dice=False,
         weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
     )
 )
