@@ -1,3 +1,4 @@
+from turtle import forward
 import torch
 import logging
 import torch.nn as nn
@@ -217,6 +218,55 @@ class FocalWithDice(CompoundLoss):
         loss = loss_focal + self.alpha * loss_dice
 
         return loss, loss_focal, loss_dice
+
+
+class FocalWithKL(CrossEntropyWithKL):
+    def __init__(self, mode: str,
+                 alpha: float = 1.0,
+                 factor: float = 1.0,
+                 step_size: int = 0,
+                 max_alpha: float = 100,
+                 temp: float = 1.,
+                 ignore_index: int = 255,
+                 background_index: int = -1,
+                 weight: Optional[torch.Tensor] = None) -> None:
+        super().__init__(mode, alpha=alpha, factor=factor, step_size=step_size,
+                         max_alpha=max_alpha, temp=temp, ignore_index=ignore_index,
+                         background_index=background_index, weight=weight)
+        self.focal = smp.losses.FocalLoss(mode=mode, ignore_index=self.ignore_index)
+
+    def forward(self, inputs: torch.Tensor, labels: torch.Tensor):
+        # focal term
+        loss_focal = self.focal(inputs, labels)
+        # regularization
+        gt_proportion, valid_mask = self.get_gt_proportion(self.mode, labels, inputs.shape)
+        pred_proportion = self.get_pred_proportion(self.mode, inputs, temp=self.temp, valid_mask=valid_mask)
+
+        if self.mode == BINARY_MODE:
+            regularizer = (
+                self.kl_div(gt_proportion, pred_proportion)
+                + self.kl_div(1 - gt_proportion, 1 - pred_proportion)
+            ).mean()
+        else:
+            regularizer = self.kl_div(gt_proportion, pred_proportion).mean()
+        
+        loss = loss_focal + self.alpha * regularizer
+
+        return loss, loss_focal, regularizer
+
+
+class FocalWithL1(FocalWithKL):
+    def forward(self, inputs: torch.Tensor, labels: torch.Tensor):
+        # focal term
+        loss_focal = self.focal(inputs, labels)
+        # regularization
+        gt_proportion, valid_mask = self.get_gt_proportion(self.mode, labels, inputs.shape)
+        pred_proportion = self.get_pred_proportion(self.mode, inputs, temp=self.temp, valid_mask=valid_mask)
+        loss_reg = (pred_proportion - gt_proportion).abs().mean()
+
+        loss = loss_focal + self.alpha * loss_reg
+
+        return loss, loss_focal, loss_reg
 
 
 class CrossEntropyWithDB(CompoundLoss):

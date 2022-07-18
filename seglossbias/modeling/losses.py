@@ -6,7 +6,7 @@ import segmentation_models_pytorch as smp
 from seglossbias.config.registry import Registry
 from .compound_losses import (
     CompoundLoss, CrossEntropyWithL1, CrossEntropyWithKL, CrossEntropyWithDice, CrossEntropyWithDB,
-    FocalWithDice
+    FocalWithDice, FocalWithKL, FocalWithL1
 )
 from .dice import DiceLoss, GeneralisedDiceLoss
 
@@ -132,6 +132,33 @@ LOSS_REGISTRY.register(
     )
 )
 
+LOSS_REGISTRY.register(
+    "Focal+KL",
+    lambda cfg: FocalWithKL(
+        mode=cfg.MODEL.MODE,
+        alpha=cfg.LOSS.ALPHA,
+        factor=cfg.LOSS.ALPHA_FACTOR,
+        step_size=cfg.LOSS.ALPHA_STEP_SIZE,
+        temp=cfg.LOSS.TEMP,
+        ignore_index=cfg.LOSS.IGNORE_INDEX,
+        background_index=cfg.LOSS.BACKGROUND_INDEX,
+        weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
+    )
+)
+
+LOSS_REGISTRY.register(
+    "Focal+L1",
+    lambda cfg: FocalWithL1(
+        mode=cfg.MODEL.MODE,
+        alpha=cfg.LOSS.ALPHA,
+        factor=cfg.LOSS.ALPHA_FACTOR,
+        step_size=cfg.LOSS.ALPHA_STEP_SIZE,
+        temp=cfg.LOSS.TEMP,
+        ignore_index=cfg.LOSS.IGNORE_INDEX,
+        background_index=cfg.LOSS.BACKGROUND_INDEX,
+        weight=torch.FloatTensor(cfg.LOSS.CLASS_WEIGHTS) if cfg.LOSS.CLASS_WEIGHTS else None
+    )
+)
 
 LOSS_REGISTRY.register(
     "DiceLoss",
