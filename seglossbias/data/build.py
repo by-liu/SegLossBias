@@ -67,6 +67,7 @@ def polyp(cfg: CN, data_transform: Callable, split: str = "train") -> Dataset:
         split=split,
         set_name=cfg.DATA.SET_NAME,
         data_transformer=data_transform,
+        return_id=True if split == "test" else False
     )
 
     return dataset

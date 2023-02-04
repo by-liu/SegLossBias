@@ -11,10 +11,11 @@ class TesterV2(DefaultTester):
 
     def build_model(self):
         if self.cfg.TEST.CHECKPOINT_PATH:
-            model_path = osp.join(
-                self.cfg.OUTPUT_DIR,
-                self.cfg.TEST.CHECKPOINT_PATH
-            )
+            model_path = self.cfg.TEST.CHECKPOINT_PATH
+            # model_path = osp.join(
+            #     self.cfg.OUTPUT_DIR,
+            #     self.cfg.TEST.CHECKPOINT_PATH
+            # )
         else:
             model_path = osp.join(
                 self.cfg.OUTPUT_DIR, "best.pth"

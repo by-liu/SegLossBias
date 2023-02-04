@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 from terminaltables import AsciiTable
 from medpy import metric
+import surface_distance
 import wandb
 
 from .evaluator import DatasetEvaluator
@@ -19,10 +20,15 @@ class RetinalLesionEvaluator(DatasetEvaluator):
         self.all_dices: Optional[np.array] = None  # [N, C, X]
         # self.all_hd = []
         self.compute_hd95 = False
+        self.compute_nsd = False
 
     def set_hd95(self):
         self.compute_hd95 = True
         self.all_hd95 = []
+
+    def set_nsd(self):
+        self.compute_nsd = True
+        self.all_nsd = []
 
     def num_samples(self):
         return self.all_dices.shape[0] if self.all_dices is not None else 0
@@ -30,6 +36,27 @@ class RetinalLesionEvaluator(DatasetEvaluator):
     def reset(self):
         self.all_dices = None
         self.all_hd95 = []
+        self.all_nsd = []
+
+    def update_nsd(self, pred: np.array, target: np.array) -> np.array:
+        pred = (pred > self.thres).astype(np.int8)
+        for i in range(pred.shape[0]):
+            result = np.squeeze(pred[i])
+            gt = np.squeeze(target[i])
+            if 0 == np.count_nonzero(gt):
+                continue
+            distances = surface_distance.compute_surface_distances(
+                gt.astype(np.bool), result.astype(np.bool), spacing_mm=(2, 1)
+            )
+            nsd = surface_distance.compute_surface_dice_at_tolerance(
+                distances, tolerance_mm=1
+            )
+
+            self.all_nsd.append(nsd)
+
+    def mean_nsd(self):
+        nsd_mean = np.mean(np.array(self.all_nsd))
+        return nsd_mean
 
     def update_hd95(self, pred: np.array, target: np.array) -> np.array:
         pred = (pred > self.thres).astype(np.int8)
@@ -63,6 +90,9 @@ class RetinalLesionEvaluator(DatasetEvaluator):
         if self.compute_hd95:
             self.update_hd95(pred, target)
 
+        if self.compute_nsd:
+            self.update_nsd(pred, target)
+
         return self.curr["dsc"]
 
     def main_metric(self):
@@ -88,6 +118,10 @@ class RetinalLesionEvaluator(DatasetEvaluator):
         if self.compute_hd95:
             hd = self.mean_hd95()
             metric["hd95"] = float(hd)
+        
+        if self.compute_nsd:
+            nsd = self.mean_nsd()
+            metric["nsd"] = float(nsd)
 
         if not all_metric:
             return dice

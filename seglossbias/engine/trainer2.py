@@ -112,7 +112,8 @@ class TrainerV2(DefaultTrainer):
         self.model.eval()
 
         if phase.lower() == "test" and self.cfg.DATA.NAME == "retinal-lesions":
-            self.evaluator.compute_hd95 = True
+            # self.evaluator.compute_hd95 = True
+            self.evaluator.compute_nsd = True
 
         max_iter = len(data_loader)
         end = time.time()

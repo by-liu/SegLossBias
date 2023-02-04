@@ -19,6 +19,7 @@ class PolypDataset(Dataset):
         split: str = "train",
         set_name: str = "Kvasir",
         data_transformer: Optional[A.Compose] = None,
+        return_id: bool = False,
     ) -> None:
         assert split in [
             "train", "val", "test"
@@ -28,6 +29,7 @@ class PolypDataset(Dataset):
         self.split = split
         self.set_name = set_name
         self.data_transformer = data_transformer
+        self.return_id = return_id
         
         self.load_list()
     
@@ -68,9 +70,16 @@ class PolypDataset(Dataset):
         if self.data_transformer is not None:
             result = self.data_transformer(image=img, mask=mask)
             img = result["image"]
-            mask = result["mask"].long()
+            mask = result["mask"]
+        
+        ret = [img, mask]
 
-        return img, mask
+        if self.return_id:
+            sample_name = osp.basename(self.images[index])
+            sample_name = osp.splitext(sample_name)[0]
+            ret.append(sample_name)
+
+        return ret
 
     def __len__(self) -> int:
         return len(self.images)
@@ -104,10 +113,10 @@ def data_transformation(*args, is_train: bool = True):
             A.PadIfNeeded(
                 min_height=512, min_width=512,
                 border_mode=cv2.BORDER_CONSTANT,
-                value=(0, 0, 0), mask_value=255
+                value=(0, 0, 0), mask_value=0
             ),
-            A.Normalize(),
-            ToTensorV2()
+            # A.Normalize(),
+            # ToTensorV2()
         ])
 
     return transformer

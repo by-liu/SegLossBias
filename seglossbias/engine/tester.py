@@ -73,13 +73,15 @@ class DefaultTester:
         else:
             model_path = get_last_model_path(self.cfg)
 
+        # print(model_path)
         self.model = build_model(self.cfg, model_path=model_path)
         self.model.to(self.device)
 
     def build_meter(self):
         self.evaluator = build_evaluator(self.cfg)
         if self.cfg.DATA.NAME == "retinal-lesions":
-            self.evaluator.set_hd95()
+            # self.evaluator.set_hd95()
+            self.evaluator.set_nsd()
         self.batch_time_meter = AverageMeter()
 
     def reset_meter(self):
@@ -142,7 +144,10 @@ class DefaultTester:
             score = self.evaluator.update(predicts.detach().cpu().numpy(),
                                           labels.detach().cpu().numpy())
             if self.cfg.DATA.NAME == "retinal-lesions":
-                self.evaluator.update_hd95(
+                # self.evaluator.update_hd95(
+                #     predicts.detach().cpu().numpy(), labels.detach().cpu().numpy()
+                # )
+                self.evaluator.update_nsd(
                     predicts.detach().cpu().numpy(), labels.detach().cpu().numpy()
                 )
 
