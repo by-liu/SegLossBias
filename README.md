@@ -74,6 +74,7 @@ Note : I only test the code with python 3.8 and 3.9. Environment manager like co
     By convention, `**labelTrainIds.png` are used for cityscapes training and validation.
     We use the [scripts](https://github.com/open-mmlab/mmsegmentation/blob/master/tools/convert_datasets/cityscapes.py) in [mmsegmentation](https://github.com/open-mmlab/mmsegmentation) to generate `**labelTrainIds.png`.
 
+- 3D medical imaging datasets (e.g., Livers \& Tumors, Pancreas \& Tumors, AMOS): please refer to [nnUNetv1](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1).
 
 ## Quick start
 
@@ -120,9 +121,7 @@ python tools/train_net.py --config-file ./configs/retinal-lesions/unet_bce-l1_89
 python tools/train_net.py --config-file ./configs/cityscapes/r50fpn_512x1024_ce_l1.yaml
 ```
 
-- 3D medical imaging datasets (e.g., Livers \& Tumors, Pancreas \& Tumors, AMOS)
-  
-Pluging the implemented losses under [losses_nnunet](losses_nnunet/README.md) into [nnUNetv1](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1).
+- 3D medical imaging datasets (e.g., Livers \& Tumors, Pancreas \& Tumors, AMOS): plug the implemented losses under [losses_nnunet](losses_nnunet/README.md) into [nnUNetv1](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1).
 
 
 ## License
