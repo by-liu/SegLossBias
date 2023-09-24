@@ -4,14 +4,18 @@ Code for the paper : The hidden label-marginal biases of segmentation losses.
 
 [[arxiv](https://arxiv.org/abs/2104.08717)] 
 
-<img src="docs/example_cityscapes.png" width="1000"/>
+<img src="docs/radar_all.png" width="500"/>
 
 ## Table of Content <!-- omit in table-of-content -->
- - [Prerequisites](#prerequisites)
- - [Prepare dataset](#prepare-dataset)
- - [Quick start](#quick-start)
- - [Future work](#future-work)
- - [License & Citatoin](#license)
+- [The hidden label-marginal biases of segmentation losses](#the-hidden-label-marginal-biases-of-segmentation-losses)
+  - [Table of Content ](#table-of-content-)
+  - [Prerequisites](#prerequisites)
+  - [Prepare dataset](#prepare-dataset)
+  - [Quick start](#quick-start)
+    - [Testing with trained model](#testing-with-trained-model)
+    - [Configuration system](#configuration-system)
+    - [Training](#training)
+  - [License](#license)
 
 
 ## Prerequisites
@@ -91,6 +95,8 @@ We provide two best models we currently trained on Retinal Lesions and Cityscape
         TEST.CHECKPOINT_PATH ./trained/cityscapes_r50fpn_512x1024_ce-l1.pth TEST.SPLIT val
     ```
 
+- AMOS : [model](https://drive.google.com/file/d/19U8qp_LGhWTyBRvXuezaIRmHEGYNA1ZE/view?usp=sharing). Need to be testing with [nnUNetv1](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1).
+
 ### Configuration system
 
 We use [YACS](https://github.com/rbgirshick/yacs) to define and manage all the configurations. In a nutshell, you typically create a YAML configuration file for each experiment.
@@ -114,12 +120,10 @@ python tools/train_net.py --config-file ./configs/retinal-lesions/unet_bce-l1_89
 python tools/train_net.py --config-file ./configs/cityscapes/r50fpn_512x1024_ce_l1.yaml
 ```
 
-Please refer to [Instructions](docs/INSTRUCTIONS.md) for more information about the configurable options and other baseline models.
+- 3D medical imaging datasets (e.g., Livers \& Tumors, Pancreas \& Tumors, AMOS)
+  
+Pluging the implemented losses under [losses_nnunet](losses_nnunet/README.md) into [nnUNetv1](https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1).
 
-## Future work
-- [ ] Provide support for more medical image datasets, e.g., [WMH](https://wmh.isi.uu.nl/).
-- [ ] Some visulization tools.
-- [ ] Quick compatability with popular segmentation tools, like [nnUNet](https://github.com/MIC-DKFZ/nnUNet).
 
 ## License
 This work is licensed under MIT License. See [LICENSE](LICENSE) for details.
